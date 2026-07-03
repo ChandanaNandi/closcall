@@ -39,9 +39,8 @@ sbom:
 	syft scan dir:. -o cyclonedx-json > artifacts/reports/sbom.cdx.json
 	@echo "artifact: artifacts/reports/sbom.cdx.json"
 
-# --- Implemented later in Gate 1 ---
 doctor:
-	@$(NOT_READY)
+	python3.12 scripts/doctor.py
 
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
