@@ -112,3 +112,18 @@ exactly this incident.
   disk. Pilot performs the cleanup; the gate check verifies it.
 - Planning-era expectation for the Gate 1 benchmark on 24 GB (~12 GB per 2s4l lab): shard count 1.
   The measured number governs either way.
+
+## R11. ADR-002 mitigation applied and verified (Gate 1, 2026-07-03)
+
+- Docker Desktop file sharing set to **repo-only** (`/Users/nandichandana/Downloads/ClosCall`);
+  broad host trees (`/Users`, `/Volumes`, `/private`, `/tmp`, `/var/folders`) removed. Verified in
+  VM init namespace: sibling home folders (`Documents`, `Desktop`) are `No such file or directory`;
+  the bare `/host_mnt` is an empty in-VM tmpfs (not host root). `make doctor` file-sharing probe
+  PASS with only the repo reachable.
+- **Finding — transient cross-project reachability.** Host paths reachable inside the DD VM =
+  declared file shares (ClosCall) + bind mounts of *currently-running* containers. While the
+  pilot's unrelated lab containers run (e.g. `neuronoc` bind-mounting `Downloads/NeuroNOC`), that
+  project dir becomes reachable by any privileged container in the VM. It is NOT a ClosCall
+  file-sharing misconfiguration; it disappears when those containers stop. The doctor probe
+  fails closed on any non-repo host path by design, so ClosCall lab operations require a clean
+  Docker (no other bind-mounted lab containers) — the probe enforces this at gate-check time.

@@ -110,9 +110,13 @@ def check_file_sharing() -> None:
         return
     reachable = [ln.strip() for ln in out.splitlines() if ln.strip().startswith("/host_mnt")]
     # Map each VM mountpoint back to its host path and classify.
+    # The bare "/host_mnt" is Docker Desktop's own empty tmpfs base (verified: type tmpfs,
+    # size-capped, no host contents) — it is not a host share, so it is not a violation.
     violations = []
     for mp in reachable:
-        host_path = mp[len("/host_mnt") :] or "/"
+        host_path = mp[len("/host_mnt") :]
+        if host_path == "":  # bare /host_mnt tmpfs base
+            continue
         within_repo = host_path == REPO_ROOT or host_path.startswith(REPO_ROOT + "/")
         if not within_repo:
             violations.append(host_path)
