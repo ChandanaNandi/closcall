@@ -31,6 +31,12 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CORPUS_MIN_FREE_GIB = 60  # R10 ruling: corpus blocked below this.
 
+# Shard-math invariant (R13): one 2s4l lab measured at ~7.5 GiB peak must fit the Docker Desktop
+# VM with >=30% headroom, or shard count = 1 no longer holds. Min VM = peak / (1 - headroom).
+LAB_PEAK_GIB = 7.5
+SHARD_HEADROOM = 0.30
+MIN_VM_GIB = round(LAB_PEAK_GIB / (1 - SHARD_HEADROOM), 1)  # ~10.7 GiB
+
 _fail = 0
 _warn = 0
 
@@ -94,7 +100,30 @@ def check_docker_vm() -> bool:
     _emit("PASS", "docker daemon", out)
     rc, kern = _run(["docker", "run", "--rm", PROBE_IMAGE, "uname", "-rm"], timeout=120)
     _emit("PASS" if rc == 0 else "FAIL", "vm kernel", kern if rc == 0 else "probe failed")
+    _check_vm_memory()
     return True
+
+
+def _check_vm_memory() -> None:
+    """Fail closed if the Docker Desktop VM is too small for the shard-math invariant (R13)."""
+    rc, out = _run(["docker", "run", "--rm", PROBE_IMAGE, "cat", "/proc/meminfo"], timeout=60)
+    mem_total = next(
+        (int(ln.split()[1]) / 1048576 for ln in out.splitlines() if ln.startswith("MemTotal:")),
+        0.0,
+    )
+    if rc != 0 or mem_total == 0.0:
+        _emit("FAIL", "vm memory", "could not read VM MemTotal")
+    elif mem_total < MIN_VM_GIB:
+        _emit(
+            "FAIL",
+            "vm memory",
+            f"{mem_total:.1f} GiB < {MIN_VM_GIB} GiB needed for one 2s4l lab at "
+            f"{int(SHARD_HEADROOM * 100)}% headroom (R13) — raise Docker Desktop memory",
+        )
+    else:
+        _emit(
+            "PASS", "vm memory", f"{mem_total:.1f} GiB (>= {MIN_VM_GIB} GiB shard-math floor, R13)"
+        )
 
 
 def check_file_sharing() -> None:

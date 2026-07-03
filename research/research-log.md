@@ -169,3 +169,18 @@ allocation (default ~7.65 GiB), not the 24 GB host. Pilot raised the DD VM memor
 artifact; if the DD VM is ever resized below ~11 GiB the >=30% headroom check for one 2s4l lab fails.
 Disk after image pull + benchmark: 37 GiB free (still corpus-blocked <60 GiB per R10; fine for
 non-corpus gates).
+
+## R14. Two Gate-1 findings elevated at sign-off (2026-07-03)
+
+1. **Plan-vs-reality delta (publishable):** measured full 2s4l peak = **7.50 GiB** vs the
+   planning-era estimate of **~12 GiB** — a **~38% overestimate** by every planning review
+   (`(12 - 7.5) / 12 = 0.375`). This is the first hard datapoint that the plan-vs-reality
+   verification discipline pays: measurement beat estimate by 38%, in the direction that gives the
+   corpus gate more headroom. Recorded as a delta with both numbers for the eventual write-up.
+2. **The binding constraint was software, not physics.** The ceiling was the Docker Desktop VM
+   allocation (default ~7.65 GiB), not the 24 GB host. Lesson: the load-bearing resource limit is a
+   configurable setting that could silently change. The ≥30% headroom guard for shard count = 1 now
+   depends on the VM staying ≥ ~10.7 GiB (7.5 / 0.70). This is enforced as a **doctor-checkable
+   invariant**, not prose: `scripts/doctor.py` `_check_vm_memory()` FAILs if VM `MemTotal` drops
+   below `MIN_VM_GIB` (LAB_PEAK_GIB / (1 - SHARD_HEADROOM)). A resized VM cannot silently invalidate
+   the shard math — doctor catches it at gate-check time.
