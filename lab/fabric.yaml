@@ -1,0 +1,45 @@
+# ClosCall fabric — the ONLY hand-authored fabric/IPAM source of truth (Bible §5, §7).
+# Every topology node, interface, link, role, management address, ASN, and prefix is GENERATED
+# from this file into lab/generated/ by the renderer; nothing downstream is hand-edited.
+# Address math is deterministic (Bible §7.2) and verified against SR Linux 25.3.3 (R15).
+schema_version: 1
+
+topology:
+  name: closcall-2s4l
+  mtu: 1500                     # base MTU everywhere (Bible §7.1); jumbo is a separate extension
+  link_capacity_bps: 10000000000   # fixed nominal per-link capacity (§7.1) = 10 Gbps denominator
+
+# Address pools (Bible §7.2). The allocator derives exact per-node/per-link addresses from these.
+pools:
+  p2p_supernet: 10.0.0.0/24         # leaf-spine /31 links; index = 2*(leaf-1)+(spine-1)
+  loopback_supernet: 10.255.0.0/24  # per-node /32 loopbacks on system0
+  management_supernet: 10.100.0.0/24  # per-node mgmt address for gNMI
+  host_subnet_template: 172.16.{leaf_index}.0/24  # per-leaf host subnet; gateway .1, host .10
+
+# Interface naming (Bible §7.1 deterministic map):
+#   leafN:ethernet-1/1 <-> spine1:ethernet-1/N
+#   leafN:ethernet-1/2 <-> spine2:ethernet-1/N
+#   hostN:eth1         <-> leafN:ethernet-1/3
+interfaces:
+  leaf_uplink_to_spine1: ethernet-1/1
+  leaf_uplink_to_spine2: ethernet-1/2
+  leaf_downlink_to_host: ethernet-1/3
+  spine_port_prefix: ethernet-1/    # spineX:ethernet-1/N faces leafN
+  host_port: eth1
+
+# Nodes. ASNs are unique private per switch (Bible §7.2): spines 65101/65102, leaves 65001-65004.
+# Order in each list defines the 1-based index used by the address math (spine1 index 1, etc.).
+nodes:
+  spines:
+    - {name: spine1, asn: 65101}
+    - {name: spine2, asn: 65102}
+  leaves:
+    - {name: leaf1, asn: 65001}
+    - {name: leaf2, asn: 65002}
+    - {name: leaf3, asn: 65003}
+    - {name: leaf4, asn: 65004}
+  hosts:
+    - {name: host1, leaf: leaf1}
+    - {name: host2, leaf: leaf2}
+    - {name: host3, leaf: leaf3}
+    - {name: host4, leaf: leaf4}
