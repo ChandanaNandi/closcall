@@ -1,3 +1,34 @@
 # ClosCall service composition (Bible §3.3 container networks).
-# Placeholder at Gate 1: services are added at the gate that first requires them.
-# Networks ingress/app/data/observability/lab_mgmt/lab_data are defined when first used.
+# Gate 4 observation plane: gnmic (gNMI collector) + Prometheus. Both pinned by digest.
+# They attach to the containerlab-created `closcall-mgmt` network (external) to reach the switches
+# on 10.100.0.0/24, and bind browser-facing ports to 127.0.0.1 only (§3.3).
+name: closcall
+
+services:
+  gnmic:
+    image: ghcr.io/openconfig/gnmic@sha256:9538f93a9a85e996d0ad5f7c523835e874557be84b8d279c2a51d2f092b24c7e
+    container_name: closcall-gnmic
+    command: ["--config", "/app/gnmic.yaml", "subscribe"]
+    environment:
+      SRL_PASSWORD: ${SRL_PASSWORD:?set SRL_PASSWORD in .env}
+    volumes:
+      - ./deployments/gnmic/gnmic.yaml:/app/gnmic.yaml:ro
+    networks: [closcall-mgmt]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus@sha256:76947e7ef22f8a698fc638f706685909be425dbe09bd7a2cd7aca849f79b5f64
+    container_name: closcall-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=2h
+    volumes:
+      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"   # loopback-only (§3.3)
+    networks: [closcall-mgmt]
+    restart: unless-stopped
+
+networks:
+  closcall-mgmt:
+    external: true              # created by containerlab (make lab-up)

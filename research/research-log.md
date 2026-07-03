@@ -339,3 +339,21 @@ multi-flow tool run), not loop nping, to keep per-incident timing low.
 
 **B02 (expected interfaces operational):** transitively proven — B03 requires P2P interfaces
 oper-up, B07 requires host-facing + fabric interfaces up; both pass in both runs.
+
+## R21. Gate 4 gNMI/YANG-path spike (2026-07-03)
+
+gNMI verified working on the pinned 25.3.3 image via gnmic 0.46.0
+(`ghcr.io/openconfig/gnmic@sha256:9538f93a…`, arm64) over the mgmt net with admin creds +
+`--skip-verify -e json_ietf`. gNMI version 0.10.0. **Locked telemetry paths (C01):**
+- interface oper/admin: `/interface[name=X]/oper-state`, `/interface[name=X]/admin-state`
+- interface counters: `/interface[name=X]/statistics/{in,out}-{octets,packets,error-packets,discarded-packets}`
+- BGP neighbor: `/network-instance[name=default]/protocols/bgp/neighbor[peer-address=Y]/session-state`
+  (returns `established`)
+- **R6.1 RESOLVED (favorably):** output-queue stats ARE exposed on the ARM container at
+  `/qos/interfaces/interface[interface-id=X]/output/queues/queue[]/queue-statistics/aggregate-statistics`
+  (`dropped-packets/octets`, `transmitted-packets/octets`). No drops-proxy fallback / ADR needed for
+  the PATH. **Open (Gate 5):** confirm the container actually INCREMENTS these under real congestion
+  (container NOSes sometimes stub per-queue ASIC counters); interface-level `out-discarded-packets`
+  is the reliable secondary if so.
+- Encoding gotcha: gNMI Get requires an explicit encoding (`-e json_ietf`); default encoding 0 is
+  rejected by SR Linux.

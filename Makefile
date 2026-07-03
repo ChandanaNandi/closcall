@@ -75,10 +75,21 @@ lab-down:
 lab-check:
 	uv run python scripts/lab_check.py
 
+# --- Gate 4: observation plane (gnmic + Prometheus) ---
+telemetry-up:
+	docker compose up -d
+	@echo "telemetry up: Prometheus http://127.0.0.1:9090 (loopback)"
+
+telemetry-down:
+	docker compose down
+
+telemetry-check:
+	uv run python scripts/telemetry_check.py
+
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
 db-up db-migrate db-reset-test traffic-smoke \
-telemetry-up telemetry-check fault-smoke corpus-pilot corpus dataset-build \
+fault-smoke corpus-pilot corpus dataset-build \
 dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
 	@$(NOT_READY)

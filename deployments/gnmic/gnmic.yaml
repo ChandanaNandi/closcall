@@ -1,0 +1,47 @@
+# gnmic telemetry collector config (Bible §9.1). Static targets (no Docker-socket discovery, §9.1).
+# Secrets are NOT stored here: the SR Linux password is injected via ${SRL_PASSWORD} from the
+# environment (.env, gitignored) per §6. TLS is used; CA-verified TLS + a dedicated read-only
+# telemetry identity are deferred to the security gate (I01) — the Gate-2 PKI is ready for it.
+username: admin
+password: ${SRL_PASSWORD}
+skip-verify: true
+encoding: json_ietf
+timeout: 10s
+
+targets:
+  10.100.0.1:57400: { name: spine1 }
+  10.100.0.2:57400: { name: spine2 }
+  10.100.0.3:57400: { name: leaf1 }
+  10.100.0.4:57400: { name: leaf2 }
+  10.100.0.5:57400: { name: leaf3 }
+  10.100.0.6:57400: { name: leaf4 }
+
+subscriptions:
+  if-state:                       # ON_CHANGE + heartbeat (Bible §9.1)
+    paths:
+      - "/interface[name=*]/oper-state"
+      - "/interface[name=*]/admin-state"
+    stream-mode: on-change
+    heartbeat-interval: 30s
+  bgp-state:                      # ON_CHANGE + heartbeat
+    paths:
+      - "/network-instance[name=default]/protocols/bgp/neighbor[peer-address=*]/session-state"
+    stream-mode: on-change
+    heartbeat-interval: 30s
+  if-counters:                    # SAMPLE at verified interval
+    paths:
+      - "/interface[name=*]/statistics/in-octets"
+      - "/interface[name=*]/statistics/out-octets"
+      - "/interface[name=*]/statistics/in-error-packets"
+      - "/interface[name=*]/statistics/out-error-packets"
+      - "/interface[name=*]/statistics/in-discarded-packets"
+      - "/interface[name=*]/statistics/out-discarded-packets"
+    stream-mode: sample
+    sample-interval: 5s
+
+outputs:
+  prom:
+    type: prometheus
+    listen: ":9273"
+    metric-prefix: closcall
+    append-subscription-name: true
