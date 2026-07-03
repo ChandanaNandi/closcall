@@ -248,3 +248,24 @@ Gate 3 exit conditions, recorded now so they cannot silently slip (pilot ruling)
    B10/B11) — due in Gate 3; no third slip.
 3. **SR Linux first-boot CLI-readiness time** (owed since Gate 1) — measure and record in Gate 3;
    feeds corpus per-incident timing. No third slip.
+
+## R18. containerlab-on-Docker-Desktop spike (Gate 3, 2026-07-03)
+
+De-risking spike before building the full deployment (per pilot ruling, same logic as the /31 check).
+
+- **dood WORKS on Docker Desktop.** containerlab 0.77.0 arm64
+  (`ghcr.io/srl-labs/clab@sha256:e48396f2…`) deployed a minimal 2-node SR Linux topology:
+  both nodes `running`, veth link `n1:e1-1 ▪┄┄▪ n2:e1-1` created, `ethernet-1/1` UP at L2 on both
+  ends (veth operstate `up`). Wiring is real. Socket-mount arrangement recorded as **ADR-003**.
+- **Invocation finding:** the clab image has no entrypoint; Cmd is `/usr/bin/containerlab`. Must
+  invoke `... clab containerlab deploy -t ...` (passing `deploy` alone fails "executable not found").
+- **Repo-only share suffices:** clab created its lab dir inside the repo
+  (`lab/generated/clab-<name>/`), reachable via the ADR-002 repo bind mount — no extra host share.
+- **Teardown finding (B12):** `containerlab destroy` removes node containers + the `clab` docker
+  network cleanly, but LEAVES the `clab-<name>/` working directory on disk. `make lab-down` must
+  `rm -rf` it for the B12 residue check to pass.
+- **Management-subnet finding (for full deploy):** containerlab assigns node mgmt IPs from its own
+  docker network `172.20.20.0/24`, NOT the fabric.yaml `management_supernet` (10.100.0.0/24). The
+  full topology render must reconcile this — either configure clab's mgmt subnet to 10.100.0.0/24,
+  or treat the gNMI-facing address as the clab mgmt IP and drop/repurpose the 10.100 pool. To be
+  decided when wiring the full deployment (checklist step 1/3); flagged, not silently absorbed.
