@@ -87,3 +87,10 @@
 - **Open item (for Gate 1/3, not Gate 0):** verify whether OrbStack's shared-VM model satisfies the
   Bible §3.3/§4 requirement that containerlab privileged operations run only inside a dedicated,
   isolated ARM64 Linux lab VM.
+
+## R9 (errata)
+
+R1's repo characterization (54/640/5, ReAct-only) reflected a stale/cached fetch of the paper-era
+README. Superseded by the source-register pin at e6649f45 (56 issues / 685 incidents /
+14 scenarios, multiple agent runners), 2026-07-03. The A1 SHA-pinning policy exists because of
+exactly this incident.
