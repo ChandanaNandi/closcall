@@ -143,3 +143,29 @@ exactly this incident.
   closcall, general web search found only unrelated products (a cold-call SaaS, CLOS logistics
   software, Common Lisp Object System) — no software-project collision. Private repo created at
   github.com/ChandanaNandi/closcall.
+
+## R13. Gate 1 resource benchmark — measured, not assumed (2026-07-03)
+
+Method: scratch NON-CANONICAL harness (`scripts/bench_2s4l_NONCANONICAL.py`) — 6 standalone
+SR Linux 25.3.3 nodes (@sha256:f711ddad…) + 4 alpine hosts, no wiring; SR Linux boots its full
+control plane on startup so RAM is honest. Peak VM memory sampled over a 240s settle window;
+cross-checked against summed per-node cgroup `memory.current`.
+
+- **SR Linux image on disk: 2.92 GiB.**
+- **Per-node RAM: ~1.25 GiB** (cgroup avg; single-node earlier run 1.13–1.15 GiB) — **answers R6.3**;
+  materially lighter than the R3 ~2 GiB planning figure.
+- **Full 2s4l peak VM used: 7.50 GiB** (lab footprint 6.89 GiB over empty base; cgroup cross-check
+  7.48 GiB — agrees). **Materially lighter than the planning-era ~12 GiB guess** — planning
+  overestimated; corpus math has more headroom than feared.
+- **Boot: control-plane daemons up ~20 s to first RAM plateau, fully settled by ~120 s** across all
+  6 nodes; RAM stable at ~7.5 GiB thereafter.
+- **Shard count = 1** (canon default). One lab uses 7.50 GiB of the 15.60 GiB VM → **52% headroom,
+  PASS (>=30%)**. A second lab would need ~15 GiB → exceeds the 30%-headroom budget, so 1 regardless.
+- Teardown clean: 0 residual bench containers.
+
+**Constraint recorded (pilot ruling applied):** the binding ceiling was the Docker Desktop VM
+allocation (default ~7.65 GiB), not the 24 GB host. Pilot raised the DD VM memory limit to 16 GB
+(measured MemTotal 15.60 GiB), leaving 8 GB for macOS. This is a host-side GUI setting, not a repo
+artifact; if the DD VM is ever resized below ~11 GiB the >=30% headroom check for one 2s4l lab fails.
+Disk after image pull + benchmark: 37 GiB free (still corpus-blocked <60 GiB per R10; fine for
+non-corpus gates).
