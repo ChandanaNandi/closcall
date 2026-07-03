@@ -234,3 +234,17 @@ or architectural change results.
   wiring gNMI TLS to consume the PKI (Gate 3/4); tightening import/export policy to the full §7.2
   rejection set and proving it live via RIB/FIB (B04/B05, Gate 3); ECMP two-next-hop evidence
   (B06/B09, Gate 3). The renderer emits a correct-syntax baseline policy today.
+
+## R17. Tracked carry-forwards INTO Gate 3 (locked at Gate 2 sign-off, 2026-07-03)
+
+Gate 3 exit conditions, recorded now so they cannot silently slip (pilot ruling):
+
+1. **Full §7.2 policy rejection set proven LIVE (B04/B05).** Gate 3 must prove — against the RIB/FIB
+   of the running fabric with routes flowing — that import/export policy actually REJECTS: default
+   routes, leaked P2P /31s, martians/bogons, private prefixes outside declared sets, excessive prefix
+   length, and over-limit prefix counts. Syntactic presence (proven in Gate 2) is NOT sufficient;
+   behavioral rejection against live RIB/FIB evidence is the bar. Explicit Gate 3 exit criterion.
+2. **Measured BGP convergence** (route withdrawal + packet-loss count + restoration timing,
+   B10/B11) — due in Gate 3; no third slip.
+3. **SR Linux first-boot CLI-readiness time** (owed since Gate 1) — measure and record in Gate 3;
+   feeds corpus per-incident timing. No third slip.
