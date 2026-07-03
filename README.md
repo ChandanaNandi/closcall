@@ -29,6 +29,14 @@ date; all reported statistics are statistics of that SHA. "Fetched from main" is
 same-day fetches of NIKA's main returned conflicting statistics during planning — the SHA rule exists
 because of that incident.
 
+## Release limitations queue (for acceptance row J08)
+These are known limitations to be written into the release README's limitations section at J08.
+Appended as build reality establishes them; not a planning-document rewrite.
+- Runtime isolation relies on the Docker Desktop VM boundary plus emptied host file-sharing, not a
+  dedicated hypervisor VM; documented residual risk (see `docs/decisions/ADR-002-lab-runtime-boundary.md`).
+- Core does not defend against a same-host human/privileged attacker; loopback binding is the only
+  claimed network control (threat-model assumption A1, `docs/threat-model.md`).
+
 ## Rules of this folder
 1. Planning is CLOSED. Documents change only via ADR-style corrections when build reality contradicts them.
 2. research-log.md is append-only.
