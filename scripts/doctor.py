@@ -195,11 +195,43 @@ def check_disk() -> None:
         _emit("PASS", "disk headroom", detail)
 
 
+def check_no_socket_containers() -> None:
+    """ADR-003: assert no long-lived container mounts the Docker socket.
+
+    Only the ephemeral (`--rm`) containerlab orchestrator may hold /var/run/docker.sock, and only
+    during a deploy/destroy. At gate-check time nothing should — a persistent socket-mounting
+    container is privilege drift and fails closed.
+    """
+    rc, ids = _run(["docker", "ps", "-q"], timeout=30)
+    if rc != 0:
+        _emit("FAIL", "docker socket", "could not list containers")
+        return
+    offenders = []
+    for cid in ids.split():
+        _, mounts = _run(
+            ["docker", "inspect", "-f", "{{range .Mounts}}{{.Source}} {{end}}", cid], timeout=30
+        )
+        if "/docker.sock" in mounts:
+            _, name = _run(["docker", "inspect", "-f", "{{.Name}}", cid], timeout=30)
+            offenders.append(name.strip().lstrip("/") or cid)
+    if offenders:
+        _emit(
+            "FAIL",
+            "docker socket",
+            f"long-lived containers mount the socket: {', '.join(offenders)} (ADR-003)",
+        )
+    else:
+        _emit(
+            "PASS", "docker socket", "no long-lived container holds /var/run/docker.sock (ADR-003)"
+        )
+
+
 def main() -> int:
     print("== ClosCall doctor ==")
     check_tools()
     if check_docker_vm():
         check_file_sharing()
+        check_no_socket_containers()
     else:
         _emit("FAIL", "file-sharing probe", "skipped — docker daemon unreachable")
     check_disk()

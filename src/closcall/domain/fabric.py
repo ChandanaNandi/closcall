@@ -116,6 +116,7 @@ class ResolvedHostNetwork(BaseModel):
 class ResolvedTopology(BaseModel):
     model_config = {"extra": "forbid"}
     name: str
+    management_supernet: str
     nodes: list[ResolvedNode]
     links: list[ResolvedLink]
     host_networks: list[ResolvedHostNetwork]
@@ -237,7 +238,11 @@ def allocate(spec: FabricSpec) -> ResolvedTopology:
         )
 
     return ResolvedTopology(
-        name=spec.topology.name, nodes=nodes, links=links, host_networks=host_networks
+        name=spec.topology.name,
+        management_supernet=spec.pools.management_supernet,
+        nodes=nodes,
+        links=links,
+        host_networks=host_networks,
     )
 
 

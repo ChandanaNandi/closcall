@@ -25,6 +25,7 @@ are forbidden (Bible §4). Fast-moving external repositories are cited by commit
 | Nokia SR Linux 25.3.3 (arm64) — **PRIMARY NOS** | `sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee` | lab fabric nodes (Gate 1 benchmark onward) | 2026-07-03 | release-info: https://documentation.nokia.com/srlinux/25-3/html/product/release-info.html |
 | Nokia SR Linux 24.10.4 (arm64) — fallback | `sha256:4c7af354fca7a48bb4e41be0489d5e6714f82496983c68a9d851c1ab1d5687a5` | fallback if 25.3.3 misbehaves on this host | 2026-07-03 | https://documentation.nokia.com/srlinux/ |
 | containerlab 0.77.0 (arm64) | `sha256:e48396f2245239216fc4a63c1bb5553425930f0beb1aac3e4c2dc3fda57da75f` | lab deploy/destroy via dood (ADR-003); image Cmd is `/usr/bin/containerlab`, invoke `containerlab deploy` | 2026-07-03 | https://containerlab.dev/install/ |
+| netshoot v0.13 (arm64) — host nodes | `sha256:a20c2531bf35436ed3766cd6cfe89d352b050ccc4d7005ce6400adf97503da1b` | host1-4 reachability (ping) + ECMP flow generation (nping/iperf3) | 2026-07-03 | https://github.com/nicolaka/netshoot |
 
 **SR Linux pin discipline (pilot ruling):** the **digest is the forever-referent**; the `25.3.3`
 tag is a convenience label. `ghcr.io/nokia/srlinux:25.3.3` resolved to

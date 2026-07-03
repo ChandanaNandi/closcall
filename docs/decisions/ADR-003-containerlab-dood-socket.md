@@ -1,6 +1,6 @@
 # ADR-003 — containerlab deployment via docker-out-of-docker (Docker socket mount)
 
-Status: proposed
+Status: accepted
 Date: 2026-07-03
 
 ## Context
@@ -46,6 +46,12 @@ docker run --rm --privileged --network host \
 The socket-bearing container is ephemeral (`--rm`): it exists only for the duration of a
 deploy/destroy invocation, not as a long-running service. No ClosCall application component (api,
 workflow, correlator, sensor, executor, telemetry) ever receives the socket or these mounts.
+
+**Enforced negative check (pilot addition).** To prevent drift — where something later quietly
+acquires the socket "for convenience" — `make doctor` includes a probe asserting that **no
+long-lived container mounts `/var/run/docker.sock`**. At gate-check time (no deploy in flight) the
+result must be zero. This makes the "orchestrator-only, ephemeral" boundary enforced, not merely
+documented. (Implemented in `scripts/doctor.py` `_check_no_socket_containers()`.)
 
 ## Alternatives
 

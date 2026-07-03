@@ -25,6 +25,10 @@ from closcall.domain.fabric import FabricSpec, ResolvedTopology, allocate
 SRL_IMAGE = (
     "ghcr.io/nokia/srlinux@sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee"
 )
+# Pinned host image: netshoot (ping/iperf3/nping for reachability + ECMP flow generation).
+HOST_IMAGE = "ghcr.io/nicolaka/netshoot@sha256:a20c2531bf35436ed3766cd6cfe89d352b050ccc4d7005ce6400adf97503da1b"
+# Host subnets share the 172.16.0.0/16 space; one summary route via the leaf gateway reaches all.
+HOST_SUMMARY_ROUTE = "172.16.0.0/16"
 
 
 def _switch_endpoints(topo: ResolvedTopology, node: str) -> list[tuple[str, str]]:
@@ -123,18 +127,40 @@ def render_srl_config(topo: ResolvedTopology, node_name: str) -> str:
 
 def render_clab(topo: ResolvedTopology) -> str:
     """Render the containerlab topology file (deterministic YAML, stable ordering)."""
+    # Force the management network to the fabric.yaml scheme (10.100.0.0/24) so gNMI-over-TLS
+    # cert SANs (bound to these IPs by gen_pki.py) stay valid (ADR-003 mgmt ruling, R18). The docker
+    # gateway is parked at .254 so nodes can claim .1+ as allocated.
+    mgmt_net = ipaddress.ip_network(topo.management_supernet)
+    mgmt_gw = ipaddress.ip_address(int(mgmt_net.broadcast_address) - 1)
     lines = [
         "# GENERATED from lab/fabric.yaml — do not edit (Bible §5). Regenerate via `make render`.",
         f"name: {topo.name}",
+        "mgmt:",
+        "  network: closcall-mgmt",
+        f"  ipv4-subnet: {mgmt_net}",
+        f"  ipv4-gw: {mgmt_gw}",
         "topology:",
         "  nodes:",
     ]
+    # host name -> (interface, host_addr/24, leaf gateway ip) from the access links.
+    host_data: dict[str, tuple[str, str, str]] = {}
+    for lk in topo.links:
+        if lk.kind == "access" and lk.b.address:
+            gw = lk.a.address.split("/")[0] if lk.a.address else ""
+            host_data[lk.b.node] = (lk.b.interface, lk.b.address, gw)
+
     for n in sorted(topo.nodes, key=lambda x: x.name):
+        mgmt_ip = n.management
         if n.role == "host":
+            iface, addr, gw = host_data[n.name]
             lines += [
                 f"    {n.name}:",
                 "      kind: linux",
-                "      image: HOST_IMAGE_PINNED_IN_GATE3",
+                f"      image: {HOST_IMAGE}",
+                f"      mgmt-ipv4: {mgmt_ip}",
+                "      exec:",
+                f"        - ip address add {addr} dev {iface}",
+                f"        - ip route add {HOST_SUMMARY_ROUTE} via {gw}",
             ]
         else:
             lines += [
@@ -142,6 +168,7 @@ def render_clab(topo: ResolvedTopology) -> str:
                 "      kind: nokia_srlinux",
                 f"      image: {SRL_IMAGE}",
                 f"      startup-config: {n.name}.cli",
+                f"      mgmt-ipv4: {mgmt_ip}",
             ]
     lines += ["  links:"]
     for lk in sorted(topo.links, key=lambda x: x.key):
