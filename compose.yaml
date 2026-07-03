@@ -1,0 +1,3 @@
+# ClosCall service composition (Bible §3.3 container networks).
+# Placeholder at Gate 1: services are added at the gate that first requires them.
+# Networks ingress/app/data/observability/lab_mgmt/lab_data are defined when first used.

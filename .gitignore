@@ -3,3 +3,18 @@
 __pycache__/
 *.pyc
 .venv/
+
+# tool caches and build output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+dist/
+*.egg-info/
+
+# generated data never enters source folders (Bible §5)
+artifacts/*
+!artifacts/manifests/
+!artifacts/reports/
+lab/generated/*
+!lab/generated/.gitkeep
