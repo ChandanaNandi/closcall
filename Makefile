@@ -9,7 +9,7 @@
         fault-smoke corpus-pilot corpus dataset-build dataset-verify \
         train-rules train-ts train-gnn evaluate-sensors workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
-        secret-scan dep-audit sbom render fabric-validate render-validate
+        secret-scan dep-audit sbom render fabric-validate render-validate pki
 
 NOT_READY = { echo "make $@: blocked — this target is implemented at a later gate" >&2; exit 2; }
 
@@ -53,7 +53,11 @@ fabric-validate:
 
 # Offline on-image config-parse check (needs Docker + pinned SR Linux image).
 render-validate:
-	python3.12 scripts/validate_srl_configs.py
+	uv run python scripts/validate_srl_configs.py
+
+# Generate the local lab management PKI (host secret; gitignored, never committed).
+pki:
+	uv run python scripts/gen_pki.py
 
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \

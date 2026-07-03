@@ -30,6 +30,18 @@ def sh(cmd: str, timeout: int = 300) -> tuple[int, str]:
     return p.returncode, (p.stdout + p.stderr)
 
 
+def sr_cli(node: str, script: str, timeout: int = 120) -> str:
+    """Feed a multi-line CLI script to sr_cli via stdin (no shell escaping)."""
+    p = subprocess.run(
+        ["docker", "exec", "-i", "-u", "root", node, "sr_cli"],
+        input=script,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    return p.stdout + p.stderr
+
+
 def main() -> int:
     out_dir = REPO / "lab" / "generated"
     files = render_all(load_fabric(REPO / "lab" / "fabric.yaml"), out_dir)
@@ -56,7 +68,7 @@ def main() -> int:
     for cfg in configs:
         sh(f"docker cp {out_dir / cfg} {NODE}:/tmp/{cfg}")
         script = f"enter candidate\nsource /tmp/{cfg}\ncommit validate\ndiscard stay\n"
-        _, out = sh(f"printf %s {script!r} | docker exec -i -u root {NODE} sr_cli")
+        out = sr_cli(NODE, script)
         if "All changes are valid" in out:
             print(f"  {cfg}: VALIDATE OK")
             ok += 1

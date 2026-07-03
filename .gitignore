@@ -18,3 +18,7 @@ artifacts/*
 !artifacts/reports/
 lab/generated/*
 !lab/generated/.gitkeep
+
+# lab PKI is host secret material — NEVER committed (threat-model A2, acceptance I03)
+lab/pki/*
+!lab/pki/.gitkeep
