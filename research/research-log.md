@@ -249,6 +249,38 @@ Gate 3 exit conditions, recorded now so they cannot silently slip (pilot ruling)
 3. **SR Linux first-boot CLI-readiness time** (owed since Gate 1) — measure and record in Gate 3;
    feeds corpus per-incident timing. No third slip.
 
+## R19. Gate 3 deploy + timing measurements (2026-07-03)
+
+Full 2s4l fabric deploys and converges via dood (ADR-003). Numbers from a clean instrumented
+deploy (`scripts/measure_convergence.py`):
+
+- **Deploy wall time: ~19 s** (`make lab-up`, containerlab creates 10 nodes + 12 veth links; it
+  waits for SR Linux health, so node boot is absorbed here).
+- **First-boot CLI-ready: ~1.9 s after deploy return** (~20 s from cold, inside the deploy wall).
+  **The Gate-1 ">180 s first-boot" was a MEASUREMENT ARTIFACT** — the `sr_cli` poll ran as the
+  unauthorized `user` account (R15) and looped forever; it was never slow boot. Carry-forward
+  R17 #3 RESOLVED: real first-boot is ~20 s.
+- **Full BGP convergence: ~35 s after CLI ready; ~56 s total cold deploy → all 8 eBGP sessions
+  established.** spine1/2 = 4/4 neighbors established, leaves 2/2; peer ASNs correct (65001-65004),
+  peers are the leaf even-addresses per the allocator math. (R17 #2 baseline; link-down/spine-down
+  reconvergence B10/B11 measured next.)
+- **VM memory, converged fabric idle (pre-traffic): 10.09 GiB = 65% of the 16 GiB VM (35%
+  headroom).** Higher than the Gate-1 bare-node 7.5 GiB (converged control planes + 4 netshoot
+  hosts + clab + docker mgmt network). Within budget; B09's hundreds-of-flows test is the peak to
+  watch (pilot: crowding 16 GiB = §17 STOP).
+
+**Findings:**
+- **mgmt subnet forced to 10.100.0.0/24** (docker gw parked at .254); every node gets its allocated
+  static mgmt IP (spine1 10.100.0.1 … host4 10.100.0.10), matching the PKI SANs. Fork from R18
+  resolved as the pilot ruled.
+- **Stale-network sensitivity:** an aborted deploy can leave a half-created `closcall-mgmt` network,
+  which makes a retry fail with docker "invalid IP address in add-host: 10.". Fix: `make lab-down`
+  (or remove the `closcall-mgmt` network) before retrying. The clean path is reliable; not a config
+  bug (verified: identical topology deploys cleanly after clearing the network).
+- **B12 teardown:** `make lab-down` removes containers, the `closcall-mgmt` network, AND the
+  `clab-closcall-2s4l/` working directory (R18 fix). veth/qdisc/firewall residue checks come with
+  the full B12 run.
+
 ## R18. containerlab-on-Docker-Desktop spike (Gate 3, 2026-07-03)
 
 De-risking spike before building the full deployment (per pilot ruling, same logic as the /31 check).

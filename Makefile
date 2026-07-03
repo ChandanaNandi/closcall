@@ -9,7 +9,8 @@
         fault-smoke corpus-pilot corpus dataset-build dataset-verify \
         train-rules train-ts train-gnn evaluate-sensors workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
-        secret-scan dep-audit sbom render fabric-validate render-validate pki
+        secret-scan dep-audit sbom render fabric-validate render-validate pki \
+        lab-up lab-down
 
 NOT_READY = { echo "make $@: blocked — this target is implemented at a later gate" >&2; exit 2; }
 
@@ -59,9 +60,20 @@ render-validate:
 pki:
 	uv run python scripts/gen_pki.py
 
+# --- Gate 3: deploy / acceptance / teardown (dood via ADR-003) ---
+lab-up: render
+	bash scripts/clab.sh deploy
+	@echo "lab up: closcall-2s4l"
+
+# Teardown must also remove the clab working directory (R18: destroy leaves it -> B12 residue).
+lab-down:
+	-bash scripts/clab.sh destroy
+	rm -rf lab/generated/clab-closcall-2s4l
+	@echo "lab down + working dir removed"
+
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
-db-up db-migrate db-reset-test lab-up lab-check lab-down traffic-smoke \
+db-up db-migrate db-reset-test lab-check traffic-smoke \
 telemetry-up telemetry-check fault-smoke corpus-pilot corpus dataset-build \
 dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
