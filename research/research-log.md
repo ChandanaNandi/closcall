@@ -94,3 +94,21 @@ R1's repo characterization (54/640/5, ReAct-only) reflected a stale/cached fetch
 README. Superseded by the source-register pin at e6649f45 (56 issues / 685 incidents /
 14 scenarios, multiple agent runners), 2026-07-03. The A1 SHA-pinning policy exists because of
 exactly this incident.
+
+## R10. Corrected environment facts and open items (Gate 1, 2026-07-03)
+
+- **Environment correction (pilot ruling):** the "OrbStack" in the Gate 0 brief was an unverified
+  planning-phase assumption. Observed: OrbStack not installed; Docker Desktop installed with
+  docker CLI 28.3.3 (`desktop-linux` context). Ruling: Docker Desktop is the runtime (canon R2
+  blesses both; "simplify, never add" decides). OrbStack will not be installed. The R8 open item
+  retargets to Docker Desktop under the same intent standard: own kernel, own root boundary, host
+  filesystem not implicitly writable by lab containers — with specific attention to default
+  file-sharing mounts.
+- **Host facts (observed 2026-07-03):** Apple Silicon, macOS 26.5.2 (arm64), 24 GB RAM, 12 CPU
+  cores, git 2.50.1 (Apple Git-155), Python 3.12.12, uv 0.7.21, gh 2.92.0.
+- **Open item — disk pressure (pilot ruling attached):** 40 GiB free at 91% used. Before any
+  corpus-generation gate begins, free space must be **>= 60 GiB** or the corpus is blocked;
+  SR Linux images, Prometheus retention, parquet windows, and Langfuse volumes all land on this
+  disk. Pilot performs the cleanup; the gate check verifies it.
+- Planning-era expectation for the Gate 1 benchmark on 24 GB (~12 GB per 2s4l lab): shard count 1.
+  The measured number governs either way.
