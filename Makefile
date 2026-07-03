@@ -9,7 +9,7 @@
         fault-smoke corpus-pilot corpus dataset-build dataset-verify \
         train-rules train-ts train-gnn evaluate-sensors workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
-        secret-scan dep-audit sbom
+        secret-scan dep-audit sbom render fabric-validate render-validate
 
 NOT_READY = { echo "make $@: blocked — this target is implemented at a later gate" >&2; exit 2; }
 
@@ -41,6 +41,19 @@ sbom:
 
 doctor:
 	python3.12 scripts/doctor.py
+
+# --- Gate 2: topology/IPAM/config rendering ---
+render:
+	uv run python -c "from closcall.domain.fabric import load_fabric; from closcall.domain.render import render_all; import json; print(json.dumps(render_all(load_fabric('lab/fabric.yaml'),'lab/generated'), indent=2))"
+	@echo "artifacts: lab/generated/ (see manifest.json)"
+
+fabric-validate:
+	uv run python -c "import sys; from closcall.domain.fabric import load_fabric; from closcall.domain.validate import validate_fabric; e=validate_fabric(load_fabric('lab/fabric.yaml')); [print('ERROR:',x) for x in e]; sys.exit(1 if e else 0)"
+	@echo "fabric.yaml valid"
+
+# Offline on-image config-parse check (needs Docker + pinned SR Linux image).
+render-validate:
+	python3.12 scripts/validate_srl_configs.py
 
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
