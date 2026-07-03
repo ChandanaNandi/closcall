@@ -73,20 +73,42 @@ def render_srl_config(topo: ResolvedTopology, node_name: str) -> str:
         if hn.leaf == node_name:
             own_prefixes.append(hn.subnet)
 
-    # routing-policy: export only own prefixes; reject everything else (Bible §7.2 tightened in G3).
-    for pfx in sorted(own_prefixes):
-        net = ipaddress.ip_network(pfx)
-        plen = net.prefixlen
-        lines.append(
-            f"set / routing-policy prefix-set own-prefixes prefix {pfx} "
-            f"mask-length-range {plen}..{plen}"
-        )
+    # The complete, exact set of legitimate fabric underlay prefixes: every switch loopback (/32)
+    # and every host subnet (/24). Enumerated exactly so import/export match the IPAM manifest
+    # (B04) and anything else — default, martians, P2P /31s, over-length, out-of-set — is rejected
+    # (B05 / §7.2 rejection set; proven live in Gate 3).
+    fabric_prefixes = sorted(
+        [n.loopback for n in topo.nodes if n.loopback] + [hn.subnet for hn in topo.host_networks]
+    )
+
+    def _prefix_set(name: str, prefixes: list[str]) -> list[str]:
+        out = []
+        for pfx in prefixes:
+            plen = ipaddress.ip_network(pfx).prefixlen
+            out.append(
+                f"set / routing-policy prefix-set {name} prefix {pfx} "
+                f"mask-length-range {plen}..{plen}"
+            )
+        return out
+
+    lines += _prefix_set("fabric", fabric_prefixes)
+    lines += _prefix_set("local", sorted(own_prefixes))
+
+    # Import (both roles): accept ONLY exact fabric underlay prefixes; reject everything else.
     lines += [
-        "set / routing-policy policy export-own statement 10 match prefix prefix-set own-prefixes",
-        "set / routing-policy policy export-own statement 10 action policy-result accept",
-        "set / routing-policy policy export-own default-action policy-result reject",
-        # import: accept received routes (spine relays leaf routes); tightened live in Gate 3.
-        "set / routing-policy policy import-any default-action policy-result accept",
+        "set / routing-policy policy import-fabric statement 10 match prefix prefix-set fabric",
+        "set / routing-policy policy import-fabric statement 10 action policy-result accept",
+        "set / routing-policy policy import-fabric default-action policy-result reject",
+    ]
+    # Export: a leaf originates only its own prefixes; a spine re-advertises all accepted fabric
+    # routes plus its own loopback (§7.2: "spines advertise their own loopback and accepted leaf
+    # routes"). This transit is what lets leaf-to-leaf routes propagate via the spines.
+    export_set = "local" if node.role == "leaf" else "fabric"
+    pol = "set / routing-policy policy export-fabric"
+    lines += [
+        f"{pol} statement 10 match prefix prefix-set {export_set}",
+        f"{pol} statement 10 action policy-result accept",
+        f"{pol} default-action policy-result reject",
     ]
 
     # network-instance default: bind subinterfaces + BGP.
@@ -101,8 +123,12 @@ def render_srl_config(topo: ResolvedTopology, node_name: str) -> str:
         f"{bgp} autonomous-system {node.asn}",
         f"{bgp} router-id {lo_host}",
         f"{bgp} afi-safi ipv4-unicast admin-state enable",
-        f"{bgp} group ebgp export-policy [export-own]",
-        f"{bgp} group ebgp import-policy [import-any]",
+        # eBGP multipath so remote prefixes install both spine next hops (ECMP, B06/B09). Paths
+        # traverse different spine ASNs, so allow-multiple-as is required (verified on 25.3.3).
+        f"{bgp} afi-safi ipv4-unicast multipath allow-multiple-as true",
+        f"{bgp} afi-safi ipv4-unicast multipath ebgp maximum-paths 2",
+        f"{bgp} group ebgp export-policy [export-fabric]",
+        f"{bgp} group ebgp import-policy [import-fabric]",
     ]
     # eBGP neighbors: the far endpoint of each fabric link on this node, with per-neighbor peer-as
     # (Bible §7.2: no peer group hides a wrong remote ASN).
