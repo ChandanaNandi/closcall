@@ -26,7 +26,10 @@ SRL_IMAGE = (
     "ghcr.io/nokia/srlinux@sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee"
 )
 # Pinned host image: netshoot (ping/iperf3/nping for reachability + ECMP flow generation).
-HOST_IMAGE = "ghcr.io/nicolaka/netshoot@sha256:a20c2531bf35436ed3766cd6cfe89d352b050ccc4d7005ce6400adf97503da1b"
+HOST_IMAGE = (
+    "ghcr.io/nicolaka/netshoot@sha256:"
+    "a20c2531bf35436ed3766cd6cfe89d352b050ccc4d7005ce6400adf97503da1b"
+)
 # Host subnets share the 172.16.0.0/16 space; one summary route via the leaf gateway reaches all.
 HOST_SUMMARY_ROUTE = "172.16.0.0/16"
 
