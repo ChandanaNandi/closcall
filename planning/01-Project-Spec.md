@@ -1,3 +1,4 @@
+
 # Fabric Copilot → ClosCall
 
 > **Authority note:** This file remains the product and research brief. Implementation details,

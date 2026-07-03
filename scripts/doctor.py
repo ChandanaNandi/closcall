@@ -79,8 +79,13 @@ def check_tools() -> None:
 
 def check_docker_vm() -> bool:
     rc, out = _run(
-        ["docker", "info", "--format", "{{.ServerVersion}} {{.OSType}}/{{.Architecture}} "
-         "NCPU={{.NCPU}} MemBytes={{.MemTotal}}"],
+        [
+            "docker",
+            "info",
+            "--format",
+            "{{.ServerVersion}} {{.OSType}}/{{.Architecture}} "
+            "NCPU={{.NCPU}} MemBytes={{.MemTotal}}",
+        ],
         timeout=30,
     )
     if rc != 0:
@@ -100,9 +105,21 @@ def check_file_sharing() -> None:
     any reachable host path is outside the repo tree (e.g. the whole home directory).
     """
     rc, out = _run(
-        ["docker", "run", "--rm", "--privileged", "--pid=host", PROBE_IMAGE,
-         "nsenter", "-t", "1", "-m", "sh", "-c",
-         "mount | grep -oE '/host_mnt[^ ]*' | sort -u"],
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--privileged",
+            "--pid=host",
+            PROBE_IMAGE,
+            "nsenter",
+            "-t",
+            "1",
+            "-m",
+            "sh",
+            "-c",
+            "mount | grep -oE '/host_mnt[^ ]*' | sort -u",
+        ],
         timeout=120,
     )
     if rc not in (0, 1):  # 1 = grep matched nothing (no host mounts at all — good)
@@ -121,11 +138,16 @@ def check_file_sharing() -> None:
         if not within_repo:
             violations.append(host_path)
     if violations:
-        _emit("FAIL", "file-sharing probe",
-              f"host paths outside repo reachable in VM: {', '.join(sorted(set(violations)))} — "
-              f"in Docker Desktop share ONLY {REPO_ROOT} (ADR-002)")
+        _emit(
+            "FAIL",
+            "file-sharing probe",
+            f"host paths outside repo reachable in VM: {', '.join(sorted(set(violations)))} — "
+            f"in Docker Desktop share ONLY {REPO_ROOT} (ADR-002)",
+        )
     elif reachable:
-        _emit("PASS", "file-sharing probe", f"only repo dir reachable from VM: {REPO_ROOT} (ADR-002)")
+        _emit(
+            "PASS", "file-sharing probe", f"only repo dir reachable from VM: {REPO_ROOT} (ADR-002)"
+        )
     else:
         _emit("PASS", "file-sharing probe", "no host paths reachable from VM (ADR-002)")
 
@@ -135,8 +157,11 @@ def check_disk() -> None:
     free_gib = usage.free / (1024**3)
     detail = f"{free_gib:.0f} GiB free of {usage.total / (1024**3):.0f} GiB"
     if free_gib < CORPUS_MIN_FREE_GIB:
-        _emit("WARN", "disk headroom",
-              f"{detail} — corpus gate needs >= {CORPUS_MIN_FREE_GIB} GiB (R10); OK for non-corpus gates")
+        _emit(
+            "WARN",
+            "disk headroom",
+            f"{detail} — corpus needs >= {CORPUS_MIN_FREE_GIB} GiB (R10); OK non-corpus",
+        )
     else:
         _emit("PASS", "disk headroom", detail)
 

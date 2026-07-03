@@ -24,9 +24,18 @@ from __future__ import annotations
 import subprocess
 import time
 
-SRL = "ghcr.io/nokia/srlinux@sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee"
+SRL = (
+    "ghcr.io/nokia/srlinux@sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee"
+)
 ALPINE = "alpine@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce"
-SRL_NODES = ["bench-spine1", "bench-spine2", "bench-leaf1", "bench-leaf2", "bench-leaf3", "bench-leaf4"]
+SRL_NODES = [
+    "bench-spine1",
+    "bench-spine2",
+    "bench-leaf1",
+    "bench-leaf2",
+    "bench-leaf3",
+    "bench-leaf4",
+]
 HOST_NODES = ["bench-host1", "bench-host2", "bench-host3", "bench-host4"]
 SETTLE_SECONDS = 240
 SAMPLE_EVERY = 20
@@ -35,7 +44,8 @@ GIB = 1048576  # kB in a GiB
 
 
 def sh(cmd: str, timeout: int = 120) -> str:
-    return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout).stdout.strip()
+    p = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+    return p.stdout.strip()
 
 
 def vm_mem() -> tuple[float, float]:
@@ -71,8 +81,10 @@ def main() -> None:
     print(f"baseline MemAvailable (empty): {base_avail:.2f} GiB")
 
     for n in SRL_NODES:
-        sh(f'docker run -d --name {n} --privileged --hostname {n[6:]} {SRL} '
-           f'sudo bash -c "touch /.dockerenv && /opt/srlinux/bin/sr_linux" >/dev/null')
+        sh(
+            f"docker run -d --name {n} --privileged --hostname {n[6:]} {SRL} "
+            f'sudo bash -c "touch /.dockerenv && /opt/srlinux/bin/sr_linux" >/dev/null'
+        )
     for n in HOST_NODES:
         sh(f"docker run -d --name {n} {ALPINE} sleep infinity >/dev/null")
     print(f"launched {len(SRL_NODES)} SR Linux nodes + {len(HOST_NODES)} hosts")
@@ -84,7 +96,10 @@ def main() -> None:
         used = mem_total - avail
         peak_used = max(peak_used, used)
         running = sh("docker ps -q | wc -l").strip()
-        print(f"  t+{int(time.time()-t0):3}s  used={used:.2f} GiB  peak={peak_used:.2f} GiB  running={running}")
+        print(
+            f"  t+{int(time.time() - t0):3}s  used={used:.2f} GiB  "
+            f"peak={peak_used:.2f} GiB  running={running}"
+        )
         time.sleep(SAMPLE_EVERY)
 
     cg = cgroup_sum()
@@ -93,18 +108,21 @@ def main() -> None:
     print(f"peak VM used (all nodes):        {peak_used:.2f} GiB")
     print(f"lab footprint (peak - base):     {lab_footprint:.2f} GiB")
     print(f"sum of SR Linux cgroup memory:   {cg:.2f} GiB (cross-check)")
-    print(f"per-node avg (cgroup/6):         {cg/6:.2f} GiB")
+    print(f"per-node avg (cgroup/6):         {cg / 6:.2f} GiB")
     disk = sh("df -k /System/Volumes/Data | tail -1 | awk '{print $4}'")
-    print(f"host disk free:                  {int(disk)/GIB:.1f} GiB")
+    print(f"host disk free:                  {int(disk) / GIB:.1f} GiB")
 
     # Shard count: how many labs fit in VM with >=30% headroom.
     usable = mem_total * (1 - HEADROOM)
     fits = int(usable // peak_used) if peak_used > 0 else 0
-    print(f"\nusable VM at {int(HEADROOM*100)}% headroom: {usable:.2f} GiB")
-    print(f"labs that fit with headroom:     {fits}  -> shard count = {max(1, fits) if fits else 0} "
-          f"(canon default 1)")
-    print(f"headroom with ONE lab:           {(mem_total - peak_used)/mem_total*100:.0f}% "
-          f"({'PASS' if (mem_total-peak_used)/mem_total >= HEADROOM else 'FAIL'} >= {int(HEADROOM*100)}%)")
+    shard = max(1, fits) if fits else 0
+    hr = (mem_total - peak_used) / mem_total if mem_total else 0
+    print(f"\nusable VM at {int(HEADROOM * 100)}% headroom: {usable:.2f} GiB")
+    print(f"labs that fit with headroom:     {fits}  -> shard count = {shard} (canon default 1)")
+    print(
+        f"headroom with ONE lab:           {hr * 100:.0f}% "
+        f"({'PASS' if hr >= HEADROOM else 'FAIL'} >= {int(HEADROOM * 100)}%)"
+    )
 
     teardown()
     remaining = sh("docker ps -aq --filter name=bench- | wc -l").strip()
