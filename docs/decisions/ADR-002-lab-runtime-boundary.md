@@ -1,7 +1,16 @@
 # ADR-002 — Lab runtime boundary (Docker Desktop vs. dedicated VM)
 
-Status: accepted
+Status: accepted (amended 2026-07-03, pre-implementation)
 Date: 2026-07-03
+
+> **Amendment (2026-07-03, before any GUI change was applied).** The original decision said to
+> remove *all* host file shares. Verification against the pinned containerlab macOS doc
+> (`containerlab.dev/macos`, source register) showed containerlab cannot run on the macOS host and
+> runs as a container inside the Docker Desktop VM, bind-mounting its workspace — which under Docker
+> Desktop requires the repo directory to be a shared host path. Emptying *all* shares would break
+> lab deploy. Corrected mitigation: **share only the ClosCall repo directory; remove the broad host
+> trees.** Security intent is preserved (a VM escape reaches only the repo, not the home tree). The
+> `make doctor` probe and the sections below reflect the corrected mitigation.
 
 ## Context
 
@@ -40,14 +49,17 @@ genuine; the file-sharing gap is configuration, not an architectural property, s
 separate hypervisor VM (option 3) is not warranted. The condition is a host hardening step plus a
 fail-closed gate check:
 
-1. **Remove all host file-sharing entries** from Docker Desktop (Settings → Resources → File
-   sharing: delete `/Users`, `/Volumes`, `/private`, `/tmp`, `/var/folders`), so no host path is
-   present inside the VM. Lab topologies bind-mount only explicit, in-repo paths when a node needs
-   one — never an implicit host tree.
+1. **Share only the ClosCall repo directory** in Docker Desktop (Settings → Resources → File
+   sharing): remove the broad host trees `/Users`, `/Volumes`, `/private`, `/tmp`, `/var/folders`,
+   and add the single repo path (`/Users/nandichandana/Downloads/ClosCall` on this host). Rationale:
+   containerlab runs inside the DD VM and bind-mounts its workspace, so the repo path must be
+   reachable; but no *other* host tree should be. Lab topologies bind-mount only explicit, in-repo
+   paths — never an implicit host tree outside the repo.
 2. **`make doctor` performs the adversarial ground-truth probe** a privileged lab container would
-   use: enter the VM init mount namespace and assert that no `/host_mnt/<hostpath>` mount for a
-   real host tree exists. Doctor **fails closed** if any host path is reachable. This checks the
+   use: enter the VM init mount namespace, list every `/host_mnt/...` host path shared into the VM,
+   and **fail closed** if any reachable host path lies outside the repo tree. This checks the
    outcome (actual VM mounts), not Docker Desktop's config schema, so it survives version changes.
+   The probe's allowlist is exactly the repo root; widening it requires a superseding ADR.
 3. **Standing rule — no blanket `--privileged` (belt-and-suspenders, core).** No ClosCall lab
    container runs `--privileged` unless a specific capability is proven necessary and named in the
    topology. Where containerlab or a node kind requires specific capabilities (e.g. `NET_ADMIN`,
@@ -104,9 +116,11 @@ documented as such (README limitations, J08).
 
 ## Migration
 
-1. Pilot empties Docker Desktop file sharing and restarts Docker Desktop.
-2. `make doctor` re-run confirms zero host mounts in the VM.
-3. If mounts persist after step 1, STOP and escalate to option 3 per the pilot's standing ruling.
+1. Pilot sets Docker Desktop file sharing to the repo directory only (removes the broad host
+   trees, adds the repo path) and restarts Docker Desktop.
+2. `make doctor` re-run confirms only the repo path is reachable in the VM (no broad host trees).
+3. If broad host trees persist after step 1, STOP and escalate to option 3 per the pilot's
+   standing ruling.
 
 ## Affected tests
 

@@ -16,6 +16,7 @@ Checks:
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -23,8 +24,10 @@ import sys
 # Pinned probe image (digest recorded in docs/toolchain.md). "latest" is forbidden.
 PROBE_IMAGE = "alpine@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce"
 
-# Host trees that must NOT be present inside the VM after ADR-002 file-sharing is emptied.
-HOST_TREES = ("Users", "Volumes", "private", "tmp", "var", "host")
+# ADR-002: Docker Desktop must share ONLY the ClosCall repo directory (containerlab on macOS runs
+# in the DD VM and bind-mounts its workspace, which requires that path shared). Any host tree
+# reachable in the VM that is NOT the repo (or under it) is a boundary violation.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CORPUS_MIN_FREE_GIB = 60  # R10 ruling: corpus blocked below this.
 
@@ -90,27 +93,37 @@ def check_docker_vm() -> bool:
 
 
 def check_file_sharing() -> None:
-    """ADR-002: assert no host tree is reachable from the VM init namespace."""
+    """ADR-002: only the ClosCall repo dir may be reachable from the VM init namespace.
+
+    Enters the VM init mount namespace exactly as a privileged lab container could,
+    lists every host path shared into the VM (``/host_mnt/...``), and fails closed if
+    any reachable host path is outside the repo tree (e.g. the whole home directory).
+    """
     rc, out = _run(
         ["docker", "run", "--rm", "--privileged", "--pid=host", PROBE_IMAGE,
          "nsenter", "-t", "1", "-m", "sh", "-c",
-         "mount | grep -oE '/host_mnt/[A-Za-z0-9._-]+' | sort -u"],
+         "mount | grep -oE '/host_mnt[^ ]*' | sort -u"],
         timeout=120,
     )
-    if rc not in (0, 1):  # 1 = grep found nothing (good); other = probe broke
+    if rc not in (0, 1):  # 1 = grep matched nothing (no host mounts at all — good)
         _emit("FAIL", "file-sharing probe", f"could not verify (exit {rc}): {out[:120]}")
         return
-    reachable = [
-        line.strip()
-        for line in out.splitlines()
-        if any(line.strip().endswith(f"/{t}") or f"/host_mnt/{t}" == line.strip() for t in HOST_TREES)
-    ]
-    if reachable:
+    reachable = [ln.strip() for ln in out.splitlines() if ln.strip().startswith("/host_mnt")]
+    # Map each VM mountpoint back to its host path and classify.
+    violations = []
+    for mp in reachable:
+        host_path = mp[len("/host_mnt") :] or "/"
+        within_repo = host_path == REPO_ROOT or host_path.startswith(REPO_ROOT + "/")
+        if not within_repo:
+            violations.append(host_path)
+    if violations:
         _emit("FAIL", "file-sharing probe",
-              f"host trees reachable in VM: {', '.join(reachable)} — "
-              "empty Docker Desktop file sharing (ADR-002)")
+              f"host paths outside repo reachable in VM: {', '.join(sorted(set(violations)))} — "
+              f"in Docker Desktop share ONLY {REPO_ROOT} (ADR-002)")
+    elif reachable:
+        _emit("PASS", "file-sharing probe", f"only repo dir reachable from VM: {REPO_ROOT} (ADR-002)")
     else:
-        _emit("PASS", "file-sharing probe", "no host trees reachable from VM (ADR-002)")
+        _emit("PASS", "file-sharing probe", "no host paths reachable from VM (ADR-002)")
 
 
 def check_disk() -> None:
