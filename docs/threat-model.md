@@ -183,3 +183,16 @@ From 04 §10 and Bible §2.8/§17 — each blocks rather than degrades:
 
 Collected from above for the exit review: §1 (same-host attacker out of scope), §5.5 (dev CA key
 custody), §7 PI-7 (human free-text treated as untrusted when re-entering LLM context).
+
+## 10. Adjudication record (Gate 0 exit review, 2026-07-03)
+
+All three assumptions ACCEPTED by the pilot, with conditions:
+
+- **A1 (§1) ACCEPTED.** Same-host human attacker is out of core scope; loopback binding is the
+  only claimed control. Condition: this statement must appear verbatim in the release README's
+  limitations section (queued for acceptance row J08).
+- **A2 (§5.5) ACCEPTED.** The Caddy local-CA private key is a host secret under the same regime as
+  all secrets: never committed, never logged, covered by acceptance row I03's scan.
+- **A3 (§7 PI-7) ACCEPTED — core stance, not backlog.** Approver free-text re-entering LLM context
+  is untrusted input. Approval comments are treated as data, never as instructions, wherever they
+  flow into any model context.
