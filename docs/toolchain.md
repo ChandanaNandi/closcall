@@ -17,6 +17,12 @@ are forbidden (Bible §4). Fast-moving external repositories are cited by commit
 | trivy | 0.72.0 | `trivy --version` | 2026-07-03 | https://trivy.dev/latest/docs/ |
 | caddy | 2.11.4 | `caddy version` | 2026-07-03 | https://caddyserver.com/docs/ |
 
+### Container images (pinned by digest)
+
+| Image | Digest | Used by | Date (UTC) | Primary docs |
+|---|---|---|---|---|
+| alpine 3.22 | `sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce` | `make doctor` VM/file-sharing probe | 2026-07-03 | https://hub.docker.com/_/alpine |
+
 Python dependencies are pinned exactly by the committed `uv.lock` (`uv sync --frozen` everywhere,
 including CI). Key locked versions at Gate 1: pydantic 2.13.4, pydantic-settings 2.14.2,
 ruff 0.15.20, mypy 2.1.0, pytest 9.1.1, hypothesis 6.156.1, pip-audit 2.10.1, pre-commit 4.6.0.
