@@ -127,3 +127,19 @@ exactly this incident.
   file-sharing misconfiguration; it disappears when those containers stop. The doctor probe
   fails closed on any non-repo host path by design, so ClosCall lab operations require a clean
   Docker (no other bind-mounted lab containers) — the probe enforces this at gate-check time.
+
+## R12. SR Linux version binding for R6.1/R6.2 (Gate 1, 2026-07-03)
+
+(Appended rather than edited into R6 to preserve append-only discipline; binds the same items.)
+
+- **Verified-against version = SR Linux 25.3.3 @ `sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee` (arm64), forever.**
+- This is the single version that the R6.1 (output-queue YANG path) and R6.2 (BFD/BGP timer floor)
+  open items are verified against when those verifications occur in later gates. Any change of
+  NOS version re-opens R6.1/R6.2 against the new version and is an ADR + new benchmark, never a
+  silent substitution.
+- Digest is the forever-referent; the `25.3.3` tag is a convenience label (see docs/toolchain.md).
+  Fallback 24.10.4 @ `sha256:4c7af354…` would likewise re-bind R6.1/R6.2 if ever promoted.
+- R6.4 (ClosCall name collision) resolved 2026-07-03: PyPI 404 (free), GitHub 0 repos named
+  closcall, general web search found only unrelated products (a cold-call SaaS, CLOS logistics
+  software, Common Lisp Object System) — no software-project collision. Private repo created at
+  github.com/ChandanaNandi/closcall.
