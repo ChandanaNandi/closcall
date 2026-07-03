@@ -69,3 +69,21 @@
 - “Bulletproof” is defined operationally: uncertainties must have feasibility gates, fallbacks,
   retained evidence, and stop conditions. It is not a promise that implementation will encounter no
   new facts.
+
+## R8. Gate 0 acceptance record (2026-07-03)
+
+- The canonical document set is ACCEPTED for execution as frozen in git commit `5a1758a`
+  (`chore: planning canon v1 (frozen)`): `README.md`, `planning/01`–`05`,
+  `docs/decisions/ADR-001-scope-waivers.md`, `docs/backlog.md`, `research/research-log.md`,
+  `research/source-register.md`.
+- Precedence on conflict, per README: 05 > 04 > 03 > 02 > 01; ADRs record corrections; planning is
+  CLOSED and this log is append-only.
+- Amendment A1 status accepted as propagated: waivers marked in document 05, justified by ADR-001,
+  deferred items in `docs/backlog.md`. Deferred means deferred; backlog items are not implemented.
+- Source-pinning policy A1 accepted: fast-moving repositories (NIKA first) cited by exact commit
+  SHA + access date only; reported statistics are statistics of that SHA.
+- Execution model accepted: ordered gates of document 03, worked strictly sequentially; gate
+  sections beyond the current gate remain unread until reached.
+- **Open item (for Gate 1/3, not Gate 0):** verify whether OrbStack's shared-VM model satisfies the
+  Bible §3.3/§4 requirement that containerlab privileged operations run only inside a dedicated,
+  isolated ARM64 Linux lab VM.
