@@ -71,9 +71,13 @@ lab-down:
 	rm -rf lab/generated/clab-closcall-2s4l
 	@echo "lab down + working dir removed"
 
+# Network acceptance checks B03-B08 against a running, converged fabric (§7.3).
+lab-check:
+	uv run python scripts/lab_check.py
+
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
-db-up db-migrate db-reset-test lab-check traffic-smoke \
+db-up db-migrate db-reset-test traffic-smoke \
 telemetry-up telemetry-check fault-smoke corpus-pilot corpus dataset-build \
 dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
