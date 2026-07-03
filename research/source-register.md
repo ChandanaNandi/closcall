@@ -68,3 +68,22 @@ This planning register defines the primary sources that support architecture and
 - Tool behavior pins documentation and software release.
 - A source is not cited for a stronger claim than it directly supports.
 - Secondary summaries may aid discovery but cannot settle a consequential design decision.
+
+## Pinned commits (policy A1)
+
+Fast-moving repositories are cited only by exact commit SHA with access date; reported statistics
+are statistics of that SHA, never of "main".
+
+### NIKA — github.com/sands-lab/nika
+
+- Pinned commit: `e6649f45651d711a3ecb8d3f53befdcbcdb8961f` (default-branch HEAD via
+  `git ls-remote`)
+- Accessed: 2026-07-03T16:25:19Z
+- Statistics as stated in `README.md` at this SHA (fetched via SHA-addressed raw URL):
+  **56** realistic network issues; **fourteen** network scenarios (including Kubernetes labs),
+  ten instantiable at different topology sizes; **685** distinct troubleshooting incidents.
+- Also stated at this SHA: environment based on Kathará (Docker-backed); unified `nika` CLI for
+  deploy/inject/agent-run/eval; MCP-based tool support; parameterized fault injection; Python
+  >= 3.12 with `uv`; no hard-coded agent defaults.
+- Scope of this entry: describes the repository at this SHA only. Paper statistics
+  (arXiv 2512.16381) are a separate citation and are never conflated with repository statistics.
