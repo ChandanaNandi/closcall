@@ -215,3 +215,22 @@ force a design decision, so NO ADR needed, per the Gate 2 ruling):**
 
 These three are recorded so the renderer templates target the verified 25.3.3 syntax. No IPAM/math
 or architectural change results.
+
+## R16. Gate 2 completion evidence (2026-07-03)
+
+- **Offline config-parse check (`make render-validate`): 6/6** rendered switch configs
+  (`spine1/2`, `leaf1-4`) return "All changes are valid" under `commit validate` on a throwaway
+  SR Linux 25.3.3 node. Boundary: this proves configs *commit cleanly on the release* — NOT routing,
+  convergence, or reachability (Gate 3). A committed config is not a converged fabric.
+- **Determinism (A04):** render-twice is byte-identical; verified across two independent clean
+  clones — same `manifest.json` SHA-256 (`67b99ff0…`). PKI material is excluded from the manifest
+  (certs carry random serials); confirmed no `.pem/.crt/.key` is hashed.
+- **Static validation (B01):** `validate_fabric` rejects duplicate/out-of-range ASN, dangling host
+  leaf, invalid/too-small prefix pool, empty interface, duplicate node name; Pydantic `extra=forbid`
+  rejects unknown fields at parse. Canonical `fabric.yaml` is clean.
+- **Management PKI (`make pki`):** local dev CA + per-switch gNMI server certs (SAN = hostname +
+  allocated mgmt IP, e.g. spine1 → 10.100.0.1); keys `0600`, `lab/pki/` gitignored (A2/I03).
+- Deferred to later gates (scoped, not silently absorbed): host node image pin (Gate 3);
+  wiring gNMI TLS to consume the PKI (Gate 3/4); tightening import/export policy to the full §7.2
+  rejection set and proving it live via RIB/FIB (B04/B05, Gate 3); ECMP two-next-hop evidence
+  (B06/B09, Gate 3). The renderer emits a correct-syntax baseline policy today.
