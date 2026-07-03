@@ -184,3 +184,34 @@ non-corpus gates).
    invariant**, not prose: `scripts/doctor.py` `_check_vm_memory()` FAILs if VM `MemTotal` drops
    below `MIN_VM_GIB` (LAB_PEAK_GIB / (1 - SHARD_HEADROOM)). A resized VM cannot silently invalidate
    the shard math — doctor catches it at gate-check time.
+
+## R15. SR Linux 25.3.3 config-syntax verification (Gate 2 step 3, 2026-07-03)
+
+Method: booted one throwaway node from the pinned image (`sha256:f711ddad…`), drove `sr_cli` and
+committed representative config. **The running image is the source of truth**, not blogs/docs of
+other releases. Version confirmed on the image: **`v25.3.3-158-gc7fdad33bf6`**.
+
+**Verified accepted (canon address math holds):**
+- **`/31` on P2P interfaces: ACCEPTED, no `/30` special-casing.** `interface ethernet-1/1
+  subinterface 0 ipv4 address 10.0.0.0/31` committed cleanly (the leaf-even address at link index
+  `2*(1-1)+(1-1)=0`). The §7.2 allocator math (`2*(N-1)+(S-1)`, leaf-even/spine-odd) is safe to build.
+- **`/32` loopback** on `system0` subinterface 0 committed.
+- **eBGP**: `autonomous-system`, `router-id`, `afi-safi ipv4-unicast`, group, and **per-neighbor
+  `peer-as 65101`** all commit — satisfies §7.2 "no peer group may hide a wrong remote ASN" by
+  setting peer-as at the neighbor level.
+- **routing-policy** prefix-set + policy with accept/reject default-action commit.
+
+**Syntax findings — canon specified intent, 25.3.3 uses these exact forms (template-level; NONE
+force a design decision, so NO ADR needed, per the Gate 2 ruling):**
+1. **`sr_cli` requires root/admin.** `docker exec` defaults to the image `user` account →
+   "User 'user' is not authorized to use CLI" (exit 126). Offline validation must run
+   `docker exec -u root … sr_cli`. (This also caused a Gate-2 false "node never came up" — the node
+   was ready; the poll command was unauthorized.)
+2. **prefix-set match is nested under `prefix`:** `policy … statement … match prefix prefix-set
+   <name>` — NOT `match prefix-set <name>` (verified against the `tree detail routing-policy policy
+   statement match` schema on the image).
+3. **`export-policy` / `import-policy` are leaf-lists:** `group|neighbor … export-policy [<name>]`
+   with brackets — not a single scalar value.
+
+These three are recorded so the renderer templates target the verified 25.3.3 syntax. No IPAM/math
+or architectural change results.
