@@ -1,0 +1,24 @@
+===== Gate 3 acceptance — clean run 2 =====
+20:53:13 INFO Adding SSH config for nodes path=/etc/ssh/ssh_config.d/clab-closcall-2s4l.conf
+--- B03-B08 (rc=0) ---
+== ClosCall network acceptance (B03-B08) ==
+[PASS] B03 expected BGP sessions: all switches: exactly expected sessions established
+[PASS] B04 RIB matches IPAM: leaves learn exactly the fabric loopbacks+host-subnets, nothing else
+[PASS] B05 live policy rejection (R17 #1): martian rejected at config-time=True; leaf1 advertised 3/3 forbidden prefixes; spine1 accepted 0 (want 0)
+[PASS] B06 two FIB next hops (ECMP): every remote host subnet has exactly 2 next hops on every leaf
+[PASS] B07 data-plane reachability: all host pairs reachable via eth1 data plane (not mgmt)
+[PASS] B08 MTU boundary: DF 1472 passes, DF 1473 fails (MTU 1500)
+== 0 failed ==
+--- B09 (rc=0) ---
+== B09 ECMP distribution (pre-registered: 35-65% @ 256 flows) ==
+VM memory peak during flow test: 10.48 GiB of 15.6 (§17 guard)
+  ethernet-1/1: 422 pkts (50.4%)
+  ethernet-1/2: 416 pkts (49.6%)
+PASS B09 ECMP: both paths within [35%, 65%] — split 50.4/49.6
+--- B10-B11 (rc=0) ---
+== B10/B11 fault reconvergence ==
+[PASS] B10 link-down: tx=150 rx=150 loss=0 (ECMP keeps a path; expect partial not total loss); mgmt survived=True
+[PASS] B11 spine-down: tx=150 rx=149 loss=1 (other spine carries traffic); mgmt survived=True
+--- B12 (rc=0) ---
+[PASS] B12 teardown: no residual containers, networks, working dir, or clab veths
+===== run 2: ALL PASS =====

@@ -301,3 +301,41 @@ De-risking spike before building the full deployment (per pilot ruling, same log
   full topology render must reconcile this — either configure clab's mgmt subnet to 10.100.0.0/24,
   or treat the gNMI-facing address as the clab mgmt IP and drop/repurpose the 10.100 pool. To be
   decided when wiring the full deployment (checklist step 1/3); flagged, not silently absorbed.
+  RESOLVED (R19): clab mgmt forced to 10.100.0.0/24 (gw .254), matching PKI SANs.
+
+## R20. Gate 3 network acceptance — twice from clean (2026-07-03)
+
+Exit criterion met: all §7.3 acceptance passes TWICE from clean deployment; evidence retained in
+`evals/reports/gate3-run1.txt` and `gate3-run2.txt`.
+
+**Correctness fixes that live testing caught (offline commit-validation could not):**
+- Spine route re-advertisement (transit): the export policy was role-blind ("own prefixes only"),
+  so spines never relayed leaf routes and leaves learned nothing. Fixed to role-aware export
+  (leaf=own, spine=fabric). §7.2 "spines advertise own loopback + accepted leaf routes."
+- eBGP ECMP requires explicit `multipath allow-multiple-as` + `ebgp maximum-paths 2` (paths cross
+  different spine ASNs); without it only a single best path installs. Verified live before adding.
+- Import policy tightened to an exact fabric prefix-set with default-reject (B05/R17 #1).
+
+**Measured results (both runs):**
+- B03 sessions, B04 RIB-matches-IPAM, B06 two-FIB-next-hops, B07 data-plane reachability, B08 MTU
+  boundary, B12 teardown residue: all PASS.
+- **B05 live policy rejection (R17 #1):** martian rejected at config-time; leaf1 advertised 3/3
+  forbidden prefixes (out-of-set /24, over-length /25, stray /31); spine accepted 0. Behavioral,
+  against live RIB — satisfies the Gate-2 sign-off condition.
+- **B09 ECMP (pre-registered 35-65% @ 256 flows, tolerance frozen before run):** run1 49.7/50.3,
+  run2 50.4/49.6 — near-ideal. Hash-input evidence: 25.3.3 hashes on L4 src+dst ports by default.
+- **B10 link-down: 0 packet loss** (both runs). **B11 spine-down: 0-1 packet loss.** ECMP failover
+  is sub-second. **mgmt survived every data-plane fault** — mgmt/data-plane separation proven (B07).
+
+**R17 carry-forwards all RESOLVED:** #1 live rejection ✅; #2 reconvergence measured (near-zero
+loss) ✅; #3 first-boot ~20 s — the Gate-1 ">180 s" was the sr_cli auth-poll artifact, not slow
+boot ✅.
+
+**Resource:** VM peak during B09 flow test 10.32 GiB of 15.6 (35% headroom) — no §17 crowding.
+
+**Efficiency note (forward to Gate 5 corpus):** B09's 256-flow generator loops `nping` per flow;
+per-invocation overhead makes it ~4-5 min. The corpus traffic generator should batch flows (single
+multi-flow tool run), not loop nping, to keep per-incident timing low.
+
+**B02 (expected interfaces operational):** transitively proven — B03 requires P2P interfaces
+oper-up, B07 requires host-facing + fabric interfaces up; both pass in both runs.
