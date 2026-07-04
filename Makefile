@@ -91,6 +91,10 @@ telemetry-check:
 fault-smoke:
 	uv run python scripts/fault_smoke.py
 
+# --- Core-completion: §8.1 traffic generator smoke (needs fabric up) ---
+traffic-smoke:
+	uv run python scripts/traffic_smoke.py
+
 # --- Gate 6: database + deterministic vertical slice ---
 db-up:
 	docker compose up -d postgres
@@ -118,7 +122,7 @@ vertical-slice:
 
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
-db-reset-test traffic-smoke \
+db-reset-test \
 dataset-build \
 dataset-verify train-rules train-ts train-gnn workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo:

@@ -1,0 +1,13 @@
+ClosCall — Gate 12.5 (Core Completion: traffic + loaded corpus + GNN) — live progress
+started:      2026-07-04 16:49:09
+last update:  2026-07-04 16:49:09
+elapsed:      0m
+
+  [x] 1. Traffic generator (§8.1) + MTU black-hole fix + traffic-smoke PASS
+  [ ] 2. Corpus runner v3 (traffic during window + fabric-wide capture) + regen (~3h overnight)
+  [ ] 3. Re-run detection + localization on the LOADED corpus
+  [ ] 4. GNN (§11.8) + per-link MLP (§11.7) + invariance ablations (§11.9)
+  [ ] 5. Honest ablation report (rules vs MLP vs GNN, CIs) -> then Gate 13
+
+status: piece 1 DONE — traffic makes 0.91 Gbps + congestion; MTU bug fixed. Next: corpus v3.
+tests:  179 passing | lint+typecheck clean

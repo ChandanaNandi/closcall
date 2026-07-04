@@ -573,3 +573,18 @@ SR-Linux telemetry (R23), so they enter as Gate-9 features, not this oper-state 
   injection-resistant); ablation tier = 7b. Pinned in docs/toolchain.md.
 - **Lesson:** "unsupported claims can't commit" is necessary but not sufficient — a supported yet
   irrelevant claim is another fabrication path; the commit gate must bind claims to the diagnosis.
+
+## R31. Core-completion — traffic generator + MTU black-hole bug (2026-07-04)
+- **Root deferral:** the §8.1 traffic generator was empty scaffolding (`lab/traffic/.gitkeep`) from
+  commit 1, `traffic-smoke` parked in Makefile NOT_READY, never built. The Gate 8 corpus was collected
+  traffic-free, which made gray faults undetectable and localization oper-state-trivial (R23/R28/R29) —
+  the reason no GNN could be built. This should have been a STOP at Gate 8, not a downstream limitation.
+- **Latent fabric bug found while building traffic:** host eth1 MTU defaults to 9500 (jumbo) but the
+  fabric links are 1500 (fabric.yaml topology.mtu) -> large TCP/UDP black-holed while ICMP passes
+  (PMTUD not rescuing). Proof: TCP `-M 1200` flowed at 20 Mbit/s; default MSS got 0 at the receiver.
+  Fix: `prepare_hosts()` normalizes host eth1 MTU to 1500 before generating load. (Underlying config
+  gap: the renderer sets link MTU but not host-interface MTU; noted for a fabric-config follow-up.)
+- **Traffic validated:** `make traffic-smoke` (collective_base, all_to_all, 12 flows @ 30 Mbps) ->
+  0.91 Gbps observed, 12/12 completed, 10078 retransmits, RTT 7.05ms. Real load + congestion — gray
+  faults under this load will now leave counter signatures. Dataplane caps ~20-80 Mbit/s/flow (SR
+  Linux container software dataplane); profiles set to realistic 30 Mbps/flow.

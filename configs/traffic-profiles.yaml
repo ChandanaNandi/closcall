@@ -1,1 +1,32 @@
-# configs/traffic-profiles.yaml — populated at the gate that first uses it (Bible §5 layout).
+# configs/traffic-profiles.yaml — offered-load profiles for the §8.1 traffic generator.
+# Aggregate offered load at the leaf-uplink bottlenecks (not a vague per-process %). Reproducible via
+# seed. These drive host<->host iperf3 flows across the Clos so congestion/gray faults leave counter
+# signatures and a healthy-high-util hard-negative exists.
+profiles:
+  # Base collective-shaped burst: all-to-all many-flow load across every leaf uplink.
+  collective_base:
+    pattern: all_to_all
+    streams_per_flow: 4
+    target_bitrate_bps: 30000000    # 30 Mbps offered per flow (lab dataplane realistic)
+    duration_s: 20
+    seed: 1337
+    impaired: false
+
+  # Incast (gather-shaped): every host -> one receiver, the classic hot-uplink pattern.
+  incast_host1:
+    pattern: incast
+    incast_target: host1
+    streams_per_flow: 8
+    target_bitrate_bps: 30000000
+    duration_s: 20
+    seed: 2024
+    impaired: false
+
+  # Healthy hard-negative: high utilization, NO impairment (paired control, §8.1).
+  healthy_high_util:
+    pattern: all_to_all
+    streams_per_flow: 4
+    target_bitrate_bps: 30000000
+    duration_s: 20
+    seed: 7
+    impaired: false

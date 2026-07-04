@@ -42,9 +42,7 @@ def _nika_section() -> str:
 
 def main() -> int:
     if not MANIFEST.exists():
-        print(
-            "[REFUSED] no §9.4 manifest — cannot generate a report without an immutable run id"
-        )
+        print("[REFUSED] no §9.4 manifest — cannot generate a report without an immutable run id")
         return 1
     m = json.loads(MANIFEST.read_text())
     anchor = (
