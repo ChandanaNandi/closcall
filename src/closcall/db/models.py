@@ -170,6 +170,82 @@ class RecoveryCheck(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class Artifact(Base):
+    __tablename__ = "artifacts"
+    __table_args__ = (UniqueConstraint("sha256", name="uq_artifact_sha256"), {"schema": "core"})
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    kind: Mapped[str] = mapped_column(String(48))
+    uri: Mapped[str] = mapped_column(String(512))
+    sha256: Mapped[str] = mapped_column(String(64))
+    byte_size: Mapped[int] = mapped_column(BigInteger)
+    media_type: Mapped[str] = mapped_column(String(64))
+    schema_version: Mapped[int] = mapped_column(BigInteger, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvalCampaign(Base):
+    __tablename__ = "campaigns"
+    __table_args__ = (
+        UniqueConstraint("campaign_key", name="uq_campaign_key"),
+        {"schema": "evaluation"},
+    )
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    campaign_key: Mapped[str] = mapped_column(String(128))
+    code_revision: Mapped[str] = mapped_column(String(64))
+    master_seed: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(24))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvalFaultInjection(Base):
+    __tablename__ = "fault_injections"
+    __table_args__ = ({"schema": "evaluation"},)
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation.campaigns.id", ondelete="RESTRICT")
+    )
+    fault_class: Mapped[str] = mapped_column(String(32))
+    shard_key: Mapped[str] = mapped_column(String(32))
+    target_json: Mapped[dict] = mapped_column(JSONB)  # type: ignore[type-arg]
+    parameters_json: Mapped[dict] = mapped_column(JSONB)  # type: ignore[type-arg]
+    traffic_seed: Mapped[int] = mapped_column(BigInteger)
+    fault_seed: Mapped[int] = mapped_column(BigInteger)
+    status: Mapped[str] = mapped_column(String(24))
+    device_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    simulated: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvalGroundTruthLabel(Base):
+    __tablename__ = "ground_truth_labels"
+    __table_args__ = (
+        UniqueConstraint("fault_injection_id", name="uq_gtlabel_injection"),
+        {"schema": "evaluation"},
+    )
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    fault_injection_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation.fault_injections.id", ondelete="RESTRICT")
+    )
+    label_json: Mapped[dict] = mapped_column(JSONB)  # type: ignore[type-arg]
+    label_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvalSplitManifest(Base):
+    __tablename__ = "split_manifests"
+    __table_args__ = (
+        UniqueConstraint("protocol_name", "version", name="uq_split_proto_version"),
+        {"schema": "evaluation"},
+    )
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    protocol_name: Mapped[str] = mapped_column(String(64))
+    version: Mapped[int] = mapped_column(BigInteger)
+    manifest_hash: Mapped[str] = mapped_column(String(64))
+    frozen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class AuditEvent(Base):
     __tablename__ = "events"
     __table_args__ = ({"schema": "audit"},)
@@ -195,8 +271,13 @@ CHECK_JOB_STATUS = CheckConstraint(
 
 __all__ = [
     "ApprovalDecision",
+    "Artifact",
     "AuditEvent",
     "Base",
+    "EvalCampaign",
+    "EvalFaultInjection",
+    "EvalGroundTruthLabel",
+    "EvalSplitManifest",
     "Execution",
     "ExecutionJob",
     "Incident",

@@ -97,6 +97,9 @@ db-up:
 db-migrate:
 	uv run alembic upgrade head
 
+db-isolation:
+	uv run python scripts/db_isolation_check.py
+
 vertical-slice:
 	uv run python scripts/vertical_slice.py
 

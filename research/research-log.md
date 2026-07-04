@@ -455,3 +455,23 @@ the slice's open→execute→recover path; DB grant/role isolation (E02/I07) and
 are the API/security gates (11); async-Alembic + DB contract tests in CI would need a CI Postgres
 service (added when the API gate lands). The slice's idempotency is proven live (orchestrator),
 with pure unit tests for claim/digest/ledger/counters (56 unit tests total).
+
+## R25. Gate 7 non-corpus foundation (2026-07-03) — PARTIAL (corpus disk-blocked)
+
+Built the disk-independent 2 of 4 Gate 7 exit criteria; corpus collection is blocked by R10.
+
+- **Full evaluation schema migrated (Alembic 0002):** `evaluation.{campaigns,fault_injections,
+  ground_truth_labels,split_manifests}` + `core.artifacts`; DB roles created
+  (api/workflow/sensor/correlator/evaluator).
+- **✅ "DB concurrency and role tests pass" (exit):** `scripts/db_isolation_check.py`,
+  evidence `evals/reports/gate7-db.txt` — **ground-truth isolation (E02/I07):** runtime role
+  `closcall_workflow` CANNOT read `evaluation.ground_truth_labels`, evaluator CAN;
+  **concurrency (Contracts §12):** 50 concurrent duplicate signals → exactly 1 incident / 1 signal.
+- **✅ "exclusions are predeclared" (exit):** frozen `evals/protocols/corpus-preregistration.md` —
+  fault ontology, stratum design, the 3 split protocols, causal-window rules, and the
+  quarantine/exclusion list, all declared BEFORE any collection (§10.1).
+- **🚫 BLOCKED on R10 disk rule (pilot action):** corpus collection (randomized pilot +
+  healthy/hard-negative controls) needs >= 60 GiB free; currently 35 GiB. Until the pilot frees
+  ~25 GiB, the remaining two exit criteria — **"split invariants pass"** and **"labels/features
+  visibly align"** (both need real corpus data + causal parity/leakage E06/E08) — cannot run.
+  **Gate 7 is therefore NOT signed off; foundation only.**

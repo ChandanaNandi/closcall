@@ -1,0 +1,3 @@
+[PASS] ground-truth isolation (E02/I07): workflow blocked=True, evaluator allowed=True
+[PASS] concurrent duplicate signals -> one incident: 50 concurrent signals -> 1 incident, 1 signal
+== 0 failed ==
