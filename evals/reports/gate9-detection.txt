@@ -1,9 +1,10 @@
 ClosCall Gate 9 — detection evaluation (classical ensemble)
 frozen config (fit on TRAIN+VALIDATION): ewma_z=3.0 cusum_h=4.0 fsm_persistence=2 horizon_s=60.0
+CIs: 95% incident-clustered bootstrap, n=2000, seed=1337 (§10.4)
 
-[train] recall=0.60 precision=1.00 F1=0.75 FP/healthy=0.00 latency(med/p90)=5/15s [39/65 faults, 0/13 healthy fired]
-[validation] recall=0.60 precision=1.00 F1=0.75 FP/healthy=0.00 latency(med/p90)=5/15s [39/65 faults, 0/13 healthy fired]
-[test] recall=0.60 precision=1.00 F1=0.75 FP/healthy=0.00 latency(med/p90)=5/15s [78/130 faults, 0/26 healthy fired]
+[train] recall=0.60 [0.48,0.72] precision=1.00 [1.00,1.00] F1=0.75 [0.65,0.84] FP/healthy=0.00 [0.00,0.00] latency(med/p90)=5/15s [39/65 faults, 0/13 healthy fired]
+[validation] recall=0.60 [0.48,0.72] precision=1.00 [1.00,1.00] F1=0.75 [0.65,0.84] FP/healthy=0.00 [0.00,0.00] latency(med/p90)=5/15s [39/65 faults, 0/13 healthy fired]
+[test] recall=0.60 [0.52,0.69] precision=1.00 [1.00,1.00] F1=0.75 [0.68,0.81] FP/healthy=0.00 [0.00,0.00] latency(med/p90)=5/15s [78/130 faults, 0/26 healthy fired]
 
 per-class recall (all splits):
   admin_shutdown       52/52  (blunt)

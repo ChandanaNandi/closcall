@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import glob
+import random
 import statistics
 import sys
 from dataclasses import dataclass
@@ -36,6 +37,8 @@ BLUNT = ("admin_shutdown", "carrier_loss", "intermittent_link")
 # window length correlates with fault class. Detecting off that length is incident_duration leakage
 # (§10.3). Truncate EVERY incident to a fixed span so length cannot leak; detection must use signal.
 EVAL_WINDOW_S = 25.0
+BOOT_N = 2000  # bootstrap resamples for 95% CIs
+BOOT_SEED = 1337  # seeded so CIs reproduce (matches campaign master_seed)
 
 
 @dataclass
@@ -104,31 +107,68 @@ class Metrics:
     healthy: int
 
 
-def score(incidents: list[Incident], cfg: DetectorConfig) -> Metrics:
-    detected = faults = healthy = healthy_fired = 0
-    latencies: list[float] = []
+@dataclass
+class Outcome:
+    is_healthy: bool
+    detected: bool  # fault detected within horizon (False for healthy)
+    fired: bool  # healthy incident produced any alarm (False for faults)
+    latency: float | None
+
+
+def outcomes(incidents: list[Incident], cfg: DetectorConfig) -> list[Outcome]:
+    """Per-incident detection outcome under a config — computed once, then bootstrapped over."""
+    out: list[Outcome] = []
     for inc in incidents:
         res = detect_incident(inc.samples, cfg, onset_t=inc.onset_t, is_healthy=inc.is_healthy)
-        if inc.is_healthy:
-            healthy += 1
-            if res.false_positives > 0:
-                healthy_fired += 1
-        else:
-            faults += 1
-            if res.detected:
-                detected += 1
-                if res.latency_s is not None:
-                    latencies.append(res.latency_s)
+        hit = res.detected and not inc.is_healthy
+        out.append(
+            Outcome(
+                is_healthy=inc.is_healthy,
+                detected=hit,
+                fired=(inc.is_healthy and res.false_positives > 0),
+                latency=res.latency_s if hit else None,
+            )
+        )
+    return out
+
+
+def metrics_from_outcomes(outs: list[Outcome]) -> Metrics:
+    detected = sum(o.detected for o in outs)
+    faults = sum(not o.is_healthy for o in outs)
+    healthy = sum(o.is_healthy for o in outs)
+    healthy_fired = sum(o.fired for o in outs)
     recall = detected / faults if faults else 0.0
     precision = detected / (detected + healthy_fired) if (detected + healthy_fired) else 1.0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
     fp_rate = healthy_fired / healthy if healthy else 0.0
-    lat_sorted = sorted(latencies)
-    med = statistics.median(lat_sorted) if lat_sorted else None
-    p90 = lat_sorted[min(len(lat_sorted) - 1, int(0.9 * len(lat_sorted)))] if lat_sorted else None
+    lat = sorted(o.latency for o in outs if o.latency is not None)
+    med = statistics.median(lat) if lat else None
+    p90 = lat[min(len(lat) - 1, int(0.9 * len(lat)))] if lat else None
     return Metrics(
         recall, precision, f1, fp_rate, med, p90, detected, faults, healthy_fired, healthy
     )
+
+
+def score(incidents: list[Incident], cfg: DetectorConfig) -> Metrics:
+    return metrics_from_outcomes(outcomes(incidents, cfg))
+
+
+def bootstrap_cis(
+    outs: list[Outcome], *, n_boot: int = BOOT_N, seed: int = BOOT_SEED
+) -> dict[str, tuple[float, float]]:
+    """95% incident-clustered bootstrap CIs (each resampling unit is one incident = one cluster)."""
+    rng = random.Random(seed)
+    n = len(outs)
+    acc: dict[str, list[float]] = {"recall": [], "precision": [], "f1": [], "fp_rate": []}
+    for _ in range(n_boot):
+        sample = [outs[rng.randrange(n)] for _ in range(n)]
+        m = metrics_from_outcomes(sample)
+        acc["recall"].append(m.recall)
+        acc["precision"].append(m.precision)
+        acc["f1"].append(m.f1)
+        acc["fp_rate"].append(m.fp_rate)
+    lo_i, hi_i = int(0.025 * n_boot), int(0.975 * n_boot)
+    return {k: (sorted(v)[lo_i], sorted(v)[hi_i]) for k, v in acc.items()}
 
 
 def per_class_recall(incidents: list[Incident], cfg: DetectorConfig) -> dict[str, tuple[int, int]]:
@@ -159,12 +199,17 @@ def freeze_on_train_val(incidents: list[Incident]) -> DetectorConfig:
     return best[2]
 
 
-def _fmt(m: Metrics) -> str:
+def _fmt(m: Metrics, ci: dict[str, tuple[float, float]]) -> str:
     lat = f"{m.latency_med:.0f}/{m.latency_p90:.0f}s" if m.latency_med is not None else "n/a"
+
+    def c(name: str) -> str:
+        return f"[{ci[name][0]:.2f},{ci[name][1]:.2f}]"
+
     return (
-        f"recall={m.recall:.2f} precision={m.precision:.2f} F1={m.f1:.2f} "
-        f"FP/healthy={m.fp_rate:.2f} latency(med/p90)={lat} "
-        f"[{m.detected}/{m.faults} faults, {m.healthy_fired}/{m.healthy} healthy fired]"
+        f"recall={m.recall:.2f} {c('recall')} precision={m.precision:.2f} {c('precision')} "
+        f"F1={m.f1:.2f} {c('f1')} FP/healthy={m.fp_rate:.2f} {c('fp_rate')} "
+        f"latency(med/p90)={lat} [{m.detected}/{m.faults} faults, "
+        f"{m.healthy_fired}/{m.healthy} healthy fired]"
     )
 
 
@@ -175,11 +220,13 @@ async def run() -> int:
         "ClosCall Gate 9 — detection evaluation (classical ensemble)",
         f"frozen config (fit on TRAIN+VALIDATION): ewma_z={cfg.ewma_z} cusum_h={cfg.cusum_h} "
         f"fsm_persistence={cfg.fsm_persistence} horizon_s={cfg.horizon_s}",
+        f"CIs: 95% incident-clustered bootstrap, n={BOOT_N}, seed={BOOT_SEED} (§10.4)",
         "",
     ]
     for split in ("train", "validation", "test"):
         sub = [i for i in incidents if i.split == split]
-        lines.append(f"[{split}] {_fmt(score(sub, cfg))}")
+        outs = outcomes(sub, cfg)
+        lines.append(f"[{split}] {_fmt(metrics_from_outcomes(outs), bootstrap_cis(outs))}")
     lines.append("")
     lines.append("per-class recall (all splits):")
     for fc, (d, n) in sorted(per_class_recall(incidents, cfg).items()):

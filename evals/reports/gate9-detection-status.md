@@ -25,11 +25,13 @@ online == offline replay by construction (§10.3). Thresholds are validation-tun
 
 ## Result (frozen config: ewma_z=3.0, cusum_h=4.0, fsm_persistence=2, common 25s window)
 
+Metrics with 95% incident-clustered bootstrap CIs (n=2000, seed=1337, reproducible):
+
 | split | recall | precision | F1 | FP/healthy | latency med/p90 |
 |---|---|---|---|---|---|
-| train | 0.60 | 1.00 | 0.75 | 0.00 | 5s / 15s |
-| validation | 0.60 | 1.00 | 0.75 | 0.00 | 5s / 15s |
-| test | 0.60 | 1.00 | 0.75 | 0.00 | 5s / 15s |
+| train | 0.60 [0.48, 0.72] | 1.00 [1.00, 1.00] | 0.75 [0.65, 0.84] | 0.00 [0.00, 0.00] | 5s / 15s |
+| validation | 0.60 [0.48, 0.72] | 1.00 [1.00, 1.00] | 0.75 [0.65, 0.84] | 0.00 [0.00, 0.00] | 5s / 15s |
+| test | 0.60 [0.52, 0.69] | 1.00 [1.00, 1.00] | 0.75 [0.68, 0.81] | 0.00 [0.00, 0.00] | 5s / 15s |
 
 Per-class recall (all splits):
 
@@ -67,7 +69,7 @@ from manifest/run ID." Against that:
 
 - ✅ **misses** — per-class recall reports every miss (gray 0/52 each).
 - ✅ **strata** — metrics reported per location-inductive split (train/val/test).
-- ⚠️ **CIs** — not yet computed (§10.4 asks for paired 95% bootstrap intervals). Small addition.
+- ✅ **CIs** — 95% incident-clustered bootstrap intervals (n=2000, seed=1337), reproducible (§10.4).
 - ❌ **ablations** — these are the GNN invariance tracks (§11.9), part of the deferred localization.
 - ◻️ **reproduce from manifest/run ID** — deterministic + read-only from the verified corpus; a
   formal §9.4 dataset-manifest binding is built (`datasets/manifest.py`) but not yet emitted for
