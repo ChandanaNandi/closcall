@@ -28,7 +28,10 @@ from closcall.datasets.schemas import (
     schema_hash,
 )
 
-NOMINAL_CAPACITY_BPS = 1e9  # lab nominal (1 Gbps) for util normalization; documented fidelity limit
+# Mirrors lab/fabric.yaml topology.link_capacity_bps (10 Gbps) — the util_ratio denominator. The
+# post-corpus orchestration passes the loaded fabric's value explicitly (source of truth); this is
+# the standalone default. Documented fidelity limit: clab veths enforce no real capacity.
+NOMINAL_CAPACITY_BPS = 10e9
 
 # Pinned preprocessing config -> preprocessor_hash. Any change to how features are computed must
 # change this dict (and thus the hash), creating a new benchmark version (§16).

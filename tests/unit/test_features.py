@@ -23,9 +23,9 @@ def _counter(metric: str, t0: float, v0: float, t1: float, v1: float) -> list[Ra
 
 
 def test_rates_and_util_normalization() -> None:
-    # in_octets rises 625,000,000 bytes over 10s -> 8 * 62.5MB/s = 0.5 Gbps -> util 0.5 of 1 Gbps
+    # in_octets rises 6.25e9 bytes over 10s -> 8 * 625MB/s = 5 Gbps -> util 0.5 of the 10 Gbps link
     samples = (
-        _counter("in_octets", 0, 0, 10, 625_000_000)
+        _counter("in_octets", 0, 0, 10, 6_250_000_000)
         + _counter("out_octets", 0, 0, 10, 0)
         + _counter("in_error_packets", 0, 0, 10, 100)  # 10/s
         + _counter("out_error_packets", 0, 0, 10, 0)
