@@ -5,6 +5,7 @@ shows real-time status even while a batch is running. Run anytime: `make corpus-
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -16,8 +17,8 @@ sys.path.insert(0, str(REPO / "src"))
 from closcall.db.engine import make_sessionmaker  # noqa: E402
 from closcall.db.models import EvalCampaign, EvalFaultInjection  # noqa: E402
 
-CAMPAIGN_KEY = "gate8-full-corpus-v2"
-TARGET = 300
+CAMPAIGN_KEY = os.environ.get("CAMPAIGN", "gate8-full-corpus-v2")
+TARGET = 312
 CLASSES = (
     "admin_shutdown",
     "carrier_loss",
