@@ -1,0 +1,5 @@
+[PASS] R10 disk gate: 60 GiB free (>= 60)
+[PASS] labels/features visibly align: 6/6 injections: telemetry feature matches label
+[PASS] split invariants (E06 leakage): train ['leaf1:ethernet-1/1', 'leaf1:ethernet-1/2', 'leaf2:ethernet-1/1'] ∩ test ['leaf3:ethernet-1/1', 'leaf3:ethernet-1/2', 'leaf4:ethernet-1/1'] = ∅
+[PASS] causal-window parity (E08): online==offline=0.67; future-leaking=0.40 differs (causal restriction bites)
+== 0 failed ==

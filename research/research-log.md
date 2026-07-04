@@ -475,3 +475,32 @@ Built the disk-independent 2 of 4 Gate 7 exit criteria; corpus collection is blo
   ~25 GiB, the remaining two exit criteria — **"split invariants pass"** and **"labels/features
   visibly align"** (both need real corpus data + causal parity/leakage E06/E08) — cannot run.
   **Gate 7 is therefore NOT signed off; foundation only.**
+
+## R26. Gate 7 corpus pilot COMPLETE (2026-07-03)
+
+Pilot ran after the pilot freed disk to 60 GiB (R10 satisfied). `scripts/corpus_pilot.py`,
+evidence `evals/reports/gate7-corpus.txt`. **All four Gate 7 exit criteria now pass:**
+
+- ✅ **R10 disk gate:** 60 GiB free verified before any collection (the gate-check for the pilot's
+  cleanup, as R10 required).
+- ✅ **labels/features visibly align:** 6/6 injections — the target's observed oper-state feature
+  matches the ground-truth label (admin_shutdown/carrier_loss → down; healthy_control → up).
+  Ground truth written to `evaluation.fault_injections` + `evaluation.ground_truth_labels` BEFORE
+  mutation; onset-not-observed → quarantined, never labelled (§8.3).
+- ✅ **split invariants (E06):** location-inductive train (leaf1/2) vs test (leaf3/4) link groups
+  are DISJOINT (∅ overlap).
+- ✅ **causal-window parity (E08):** online == offline feature (0.67); a future-leaking computation
+  differs (0.40) — proving the causal [t-W,t] restriction is load-bearing.
+- ✅ (foundation) exclusions predeclared + DB concurrency/role isolation (R25).
+
+**Feature-source decision:** the pilot reads the oper-state feature from the device state datastore
+(the same source gnmic subscribes to), NOT via an instant Prometheus query — because gnmic's
+`strings-as-labels` leaves the prior `oper_state="up"` label-series lingering under Prometheus
+staleness (~5 min), making a mid-transition instant query ambiguous. The streaming pipeline's own
+correctness/visibility is separately proven in Gate 4 (telemetry_check). This is a pilot
+feature-capture choice, not a telemetry defect.
+
+**Pilot scope (honest):** 6 injections across 2 fault classes + healthy controls, 2 leaf groups —
+enough to prove the split/label/parity invariants. The full pre-registered corpus (>=300 across the
+stratum matrix) is Gate 8 (full corpus). tc-based congestion faults show a host-plane signal, not
+SR-Linux telemetry (R23), so they enter as Gate-9 features, not this oper-state alignment pilot.
