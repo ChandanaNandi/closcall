@@ -149,4 +149,53 @@ async def execute_job(session: AsyncSession, job_id: uuid.UUID, device: Device) 
     return status
 
 
-__all__ = ["ALLOWED_ACTIONS", "Device", "PrecheckError", "execute_job"]
+async def reconcile_job(session: AsyncSession, job_id: uuid.UUID, device: Device) -> str:
+    """Resolve a job left ambiguous (outcome_unknown/reconciling) vs. actual device state (§13.3).
+
+    Executor restart reconciles DB intent with the authoritative device read BEFORE any retry. A
+    still-ambiguous read stays `reconciling` (visible, operator-owned) — never silently marked done.
+    """
+    job = (
+        await session.execute(select(ExecutionJob).where(ExecutionJob.id == job_id))
+    ).scalar_one()
+    if job.status not in ("running", "reconciling"):
+        return job.status  # nothing to reconcile
+    rv = (
+        await session.execute(
+            select(RemediationVersion).where(RemediationVersion.id == job.remediation_version_id)
+        )
+    ).scalar_one()
+    node, iface = rv.plan_json["node"], rv.plan_json["interface"]
+    actual = device.get_oper_state(node, iface)  # authoritative device state
+
+    if actual == "up":
+        job.status, resolved = "completed", "succeeded"
+    elif actual in ("", "unknown"):
+        job.status, resolved = "reconciling", "outcome_unknown"  # still ambiguous -> stays visible
+    else:
+        job.status, resolved = "retryable_failed", "failed"
+
+    execution = (
+        await session.execute(select(Execution).where(Execution.execution_job_id == job.id))
+    ).scalar_one_or_none()
+    if (
+        execution is not None
+        and execution.status == "outcome_unknown"
+        and resolved != "outcome_unknown"
+    ):
+        execution.status = resolved
+    session.add(
+        AuditEvent(
+            actor_type="executor",
+            actor_id="executor",
+            action="execution.reconcile",
+            entity_type="execution_job",
+            entity_id=str(job.id),
+            before_json={"status": "reconciling"},
+            after_json={"actual_oper_state": actual, "resolved": resolved},
+        )
+    )
+    return resolved
+
+
+__all__ = ["ALLOWED_ACTIONS", "Device", "PrecheckError", "execute_job", "reconcile_job"]
