@@ -1,10 +1,12 @@
-# Gate 9 — Detection Status Note
+# Gate 9 — Detection + Localization Status Note
 
-Status: **detection deliverable complete and honest; localization deferred.** This is a partial-gate
-status note, not a Gate 9 sign-off (see "Exit-criteria status" below).
+Status: **detection and localization deliverables complete and honest; no neural model built (by
+design, §11).** This is a status note, not a full Gate 9 sign-off (see "Exit-criteria status").
 
-Scope decision (pilot): proceed with **detection only** on the existing `gate8-full-corpus-v2`
-corpus; **no re-collection.** Localization is deferred, not abandoned.
+Scope decisions (pilot): (1) proceed on the existing `gate8-full-corpus-v2` corpus with **no
+re-collection**; (2) for localization, **capture a healthy fabric-wide baseline** (not re-collect)
+to populate non-target links. Both classical detection and rule-based localization are delivered;
+the neural TS/MLP/GNN models are deliberately not built — see the localization finding.
 
 ## What was built
 
@@ -62,26 +64,51 @@ not signal — `incident_duration` leakage (§10.3, `FORBIDDEN_FEATURE_COLUMNS`)
 - **Source note:** the confound lives in the raw corpus (`WINDOW_GRAY_S` ≠ `WINDOW_BLUNT_S`); a
   future collection should use a single window length for all classes. Not fixed now (no re-collect).
 
+## Localization (rule baseline, §11.6–11.7)
+
+Per the pilot's baseline decision (`make capture-baseline`), each incident's graph uses the target
+interface's real §9.1 window and the healthy fabric-wide baseline for all other links. The
+root-cause link is scored by **operational state only** (the one real signal here) — deliberately
+NOT "differs from baseline," which would let the capture artifact leak the answer for gray faults.
+Ranked with average-rank tie handling (`make evaluate-localization`):
+
+| | top-1 | top-3 | MRR |
+|---|---|---|---|
+| Blunt faults | **1.00** | 1.00 | 1.00 |
+| Gray faults | 0.00 | 0.00 | 0.15 (expected-random) |
+| Overall (test) | 0.60 | 0.60 | 0.66 |
+
+**Finding:** localization is oper-state-driven — blunt faults are trivially localized (the down
+link), gray faults are unsolvable (no device signal without traffic, R23). The oper-state rule is
+the strong baseline and **a neural TS/MLP/GNN cannot beat it on this traffic-free corpus**, so per
+§11 ("publish the result and keep the simpler system") the neural models are **not built**. Fidelity
+limit: non-target links use a single static healthy baseline (not concurrent), captured identically
+to the corpus windows to avoid a capture artifact (R29).
+
 ## Exit-criteria status (Gate 9)
 
 Gate 9 exit is "frozen test reports include all misses, CIs, strata, and ablations; results reproduce
 from manifest/run ID." Against that:
 
-- ✅ **misses** — per-class recall reports every miss (gray 0/52 each).
+- ✅ **misses** — per-class recall + localization rank report every miss (gray 0/52 each).
 - ✅ **strata** — metrics reported per location-inductive split (train/val/test).
-- ✅ **CIs** — 95% incident-clustered bootstrap intervals (n=2000, seed=1337), reproducible (§10.4).
-- ❌ **ablations** — these are the GNN invariance tracks (§11.9), part of the deferred localization.
+- ✅ **CIs** — detection: 95% incident-clustered bootstrap (n=2000, seed=1337), reproducible (§10.4).
+- ⚠️ **ablations** — the §11.9 invariance tracks presuppose a neural model; none is built (the rule
+  baseline is unbeatable on this corpus, §11), so the ablations are N/A here — documented, not skipped.
 - ◻️ **reproduce from manifest/run ID** — deterministic + read-only from the verified corpus; a
-  formal §9.4 dataset-manifest binding is built (`datasets/manifest.py`) but not yet emitted for
-  this run.
+  formal §9.4 dataset-manifest binding is built (`datasets/manifest.py`) but not yet emitted.
 
-**Conclusion:** the detection deliverable is complete, honest, and leak-audited. Gate 9 as a whole is
-**not signed off** — localization (§11.6–11.8), ablations, and CIs remain.
+**Conclusion:** detection and localization are complete, honest, and leak-audited. Gate 9 is **not
+formally signed off** — it lacks a neural-model track (deliberately, per §11) and a bound dataset
+manifest; and the corpus is traffic-free, which caps gray-fault observability. These are documented
+limitations, not hidden gaps.
 
 ## Provenance
 
 - Commits: detectors `61dd0a6`; feature/graph/split builders `b480b43`/`d4f3066`/`606f1a6`; adapter
-  + fixes `03bf92a`; detection eval + leak fix `9a4b9b2`.
+  + fixes `03bf92a`; detection eval + leak fix `9a4b9b2`; CIs `e8e7431`.
 - Corpus: `gate8-full-corpus-v2`, 312 incidents, `make corpus-verify` → 0 failed (incl. §9.1 windows).
+  Healthy baseline: 20 SR-Linux endpoints (`make capture-baseline`).
 - Tests: 108 unit/property, all pure/offline. `make lint` + `make typecheck` clean.
-- Report artifact: `evals/reports/gate9-detection.txt` (regenerate with `make evaluate-sensors`).
+- Report artifacts: `gate9-detection.txt` (`make evaluate-sensors`), `gate9-localization.txt`
+  (`make evaluate-localization`).

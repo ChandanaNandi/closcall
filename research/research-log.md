@@ -540,3 +540,19 @@ SR-Linux telemetry (R23), so they enter as Gate-9 features, not this oper-state 
   window-length/fault-class correlation into the raw windows. Mitigated at eval time by truncation;
   a future collection should use a single window length for all classes to remove the confound at
   source.
+
+## R29. Gate 9 localization — baseline decision + honest rule result (2026-07-04)
+- **Data gap:** the corpus captured only each incident's TARGET link, so a graph localization example
+  has features on one node and none elsewhere — the presence of data would trivially/leakily localize
+  the fault. Pilot decided: capture a healthy fabric-wide baseline (`capture_baseline.py`, 20 SR-Linux
+  endpoints) for the non-target links; NO re-collection.
+- **Rule (leak-aware):** score candidate links by operational state ONLY, not "differs from baseline"
+  — the target window is captured at incident time while the baseline is captured later, so a
+  differs-from-baseline rule would leak the target's identity for gray faults via capture artifacts.
+- **Honest result:** blunt faults top-1=1.00 (the down link), gray faults top-1=0.00 / MRR=0.15
+  (expected-random). The oper-state rule is the strong baseline; a neural TS/MLP/GNN cannot beat it on
+  this traffic-free corpus, so per §11 the neural models are NOT built (publish + keep the simpler
+  system). §11.9 invariance ablations are N/A without a neural model — documented, not skipped.
+- **Fidelity limit:** non-target links use a single static healthy baseline (not concurrent). A real
+  localization benchmark needs concurrent fabric-wide telemetry under traffic load — a future
+  collection, not this corpus.

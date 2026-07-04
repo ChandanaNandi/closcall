@@ -7,7 +7,8 @@
         test-security test-failure test-e2e db-up db-migrate db-reset-test \
         lab-up lab-check lab-down traffic-smoke telemetry-up telemetry-check \
         fault-smoke corpus-pilot corpus corpus-verify dataset-build dataset-verify \
-        train-rules train-ts train-gnn evaluate-sensors workflow-run api-up \
+        train-rules train-ts train-gnn evaluate-sensors capture-baseline \
+        evaluate-localization workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
         secret-scan dep-audit sbom render fabric-validate render-validate pki \
         lab-up lab-down
@@ -126,3 +127,10 @@ api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
 # --- Gate 9: detection evaluation (classical ensemble; read-only over the finished corpus) ---
 evaluate-sensors:
 	uv run python scripts/evaluate_sensors.py
+
+# --- Gate 9: healthy fabric-wide baseline capture + localization evaluation (rule baseline) ---
+capture-baseline:
+	uv run python scripts/capture_baseline.py
+
+evaluate-localization:
+	uv run python scripts/evaluate_localization.py

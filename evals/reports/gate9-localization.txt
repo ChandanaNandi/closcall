@@ -1,0 +1,15 @@
+ClosCall Gate 9 — localization evaluation (oper-state rule baseline)
+candidates=12 physical links; root cause is a physical-link candidate (§4.2)
+
+[train] top1=0.60 top3=0.60 MRR=0.66 (n=65)
+[validation] top1=0.60 top3=0.60 MRR=0.66 (n=65)
+[test] top1=0.60 top3=0.60 MRR=0.66 (n=130)
+
+per-class (all splits):
+  admin_shutdown       top1=1.00 top3=1.00 MRR=1.00 (n=52)  (blunt)
+  carrier_loss         top1=1.00 top3=1.00 MRR=1.00 (n=52)  (blunt)
+  impaired_link        top1=0.00 top3=0.00 MRR=0.15 (n=52)  (gray)
+  intermittent_link    top1=1.00 top3=1.00 MRR=1.00 (n=52)  (blunt)
+  rate_limited_uplink  top1=0.00 top3=0.00 MRR=0.15 (n=52)  (gray)
+
+FINDING: localization is oper-state-driven — blunt faults trivially localized (the down link), gray faults unsolvable (no device signal without traffic, R23). The oper-state rule is the strong baseline; a neural model (§11.7/11.8) cannot beat it on this corpus, so per §11 it is not built. Fidelity limit: non-target links use a single static healthy baseline (not concurrent), captured identically to the corpus windows to avoid an artifact.
