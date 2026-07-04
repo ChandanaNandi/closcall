@@ -38,6 +38,7 @@ class Evidence:
     value: float | str
     unit: str  # e.g. "state", "packets_per_s", "bytes"
     at: float  # event_time (epoch seconds)
+    trusted: bool = True  # False for retrieved logs/runbooks (untrusted text, §12.3)
 
 
 @dataclass(frozen=True)
