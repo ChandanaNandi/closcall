@@ -556,3 +556,20 @@ SR-Linux telemetry (R23), so they enter as Gate-9 features, not this oper-state 
 - **Fidelity limit:** non-target links use a single static healthy baseline (not concurrent). A real
   localization benchmark needs concurrent fabric-wide telemetry under traffic load — a future
   collection, not this corpus.
+
+## R30. Gate 10 LLM qualification — diagnosis-relevance hole caught by the 7b model (2026-07-04)
+- **Setup:** two tool-capable models already local (no download): qwen2.5:7b-instruct (845dbda0ea48),
+  qwen2.5:14b-instruct (7cdf5a0187d5). Qualified via `make qualify-llm` over validation + an injection
+  fixture. Model is propose-only; the §12.2 verifier gates every claim.
+- **Hole (found by the real 7b run, injection_held=False):** the workflow committed a diagnosis
+  whenever a hypothesis's claims were SUPPORTED — but never checked that the claims are RELEVANT to
+  the diagnosis class. 7b emitted a made-up class ("Operational State") with a claim that was
+  genuinely supported (the link IS up) → committed a false diagnosis. Verifier checked claim truth,
+  not claim→class entailment.
+- **Fix:** `DIAGNOSIS_DEFINITIONS` bind each recognized class to a required claim signature
+  (metric+operator+polarity). A hypothesis commits only if its class is recognized AND a supported
+  claim ENTAILS it. Unrecognized classes and supported-but-irrelevant claims now abstain. After the
+  fix both models hold the injection fixture. PRIMARY (frozen) = qwen2.5:14b-instruct (accuracy 0.71,
+  injection-resistant); ablation tier = 7b. Pinned in docs/toolchain.md.
+- **Lesson:** "unsupported claims can't commit" is necessary but not sufficient — a supported yet
+  irrelevant claim is another fabrication path; the commit gate must bind claims to the diagnosis.

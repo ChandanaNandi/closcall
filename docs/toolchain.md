@@ -41,6 +41,10 @@ Added at Gate 2: pyyaml 6.0.3 (parses the canon's YAML source of truth, `lab/fab
 `configs/*.yaml`); types-pyyaml (dev) for mypy strict.
 Added at Gate 9: pyarrow 24.0.0 (writes/reads the §9.1 raw-telemetry and §9.2 causal-feature Parquet;
 Contracts §9).
+Qualified at Gate 10 (§4.1, `make qualify-llm`): local LLM via Ollama 0.30.7. PRIMARY (frozen):
+`qwen2.5:14b-instruct` digest `7cdf5a0187d5` (accuracy 0.71, injection-resistant, 0 schema repairs).
+Second frozen tier for reasoning ablation: `qwen2.5:7b-instruct` digest `845dbda0ea48`. The model is
+propose-only; the deterministic verifier gates every claim.
 
 GitHub Actions are pinned by full commit SHA in `.github/workflows/ci.yml`:
 actions/checkout v7.0.0 `9c091bb2…`, astral-sh/setup-uv v8.2.0 `fac544c0…`,
