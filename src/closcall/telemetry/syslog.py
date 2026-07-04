@@ -20,8 +20,14 @@ _RFC3164 = re.compile(
 )
 
 _SEVERITIES = [
-    "emergency", "alert", "critical", "error",
-    "warning", "notice", "informational", "debug",
+    "emergency",
+    "alert",
+    "critical",
+    "error",
+    "warning",
+    "notice",
+    "informational",
+    "debug",
 ]
 
 
@@ -40,8 +46,15 @@ def normalize(raw: str, received_at: float) -> LogEvent:
     """Parse one syslog line; on any parse miss, keep the raw and leave fields None."""
     m = _RFC3164.match(raw.rstrip("\n"))
     if not m:
-        return LogEvent(raw=raw, node=None, facility=None, severity=None, tag=None,
-                        event_time=None, received_at=received_at)
+        return LogEvent(
+            raw=raw,
+            node=None,
+            facility=None,
+            severity=None,
+            tag=None,
+            event_time=None,
+            received_at=received_at,
+        )
     pri = int(m.group("pri"))
     facility, sev_idx = divmod(pri, 8)
     severity = _SEVERITIES[sev_idx] if sev_idx < len(_SEVERITIES) else None
