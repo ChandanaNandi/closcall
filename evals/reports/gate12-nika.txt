@@ -1,0 +1,26 @@
+NIKA external benchmark — agent-only result: NOT RUN HERE (documented known limitation)
+
+Distinct references (Gate 12 exit criterion 2 — paper vs repository never conflated):
+- Published benchmark (paper version): arXiv:2512.16381.
+- Repository snapshot (pinned, distinct from the paper): sands-lab/nika @
+  e6649f45651d711a3ecb8d3f53befdcbcdb8961f (verified reachable 2026-07-04).
+
+Corrected characterization (against the pinned repo, not the paper):
+- The repo README describes 56 realistic issues / 685 incidents across 14 scenarios (incl.
+  Kubernetes labs), a unified `nika` CLI, and a Kathara-based network emulation environment. (The
+  earlier research-log figures — 54 issues / 640 incidents / 5 scenarios — reflect an older snapshot;
+  the pinned snapshot supersedes them. Paper and repo figures are kept separate on purpose.)
+
+Why it is not run in this environment:
+- Running the pinned agent-only adapter requires the NIKA stack: Kathara (a separate network
+  emulator), deployment of their lab scenarios, and an adapter binding the ClosCall diagnostic agent
+  to their orchestration/agent interface. That is a major external, system-level integration —
+  consistent with the research log positioning NIKA as an external eval harness (post-core), and with
+  ADR-001/backlog listing NIKA scenario-pack work as post-core.
+
+Integrity statement (Gate 12 exit criterion 3):
+- NO internal ClosCall detection/localization/reasoning metric is presented as a NIKA result or as
+  NIKA validation. The internal studies (gate9-detection, gate9-localization, gate10-llm) are scored
+  on the ClosCall corpus (gate8-full-corpus-v2) and are unrelated to NIKA's incidents and scoring.
+- When the NIKA adapter is run post-core, it will be reported as a SEPARATE agent-only external
+  result against the pinned repo snapshot above, never merged into the internal metrics.
