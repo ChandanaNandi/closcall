@@ -26,6 +26,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from closcall.datasets.features import RawSample
 from closcall.datasets.schemas import RAW_TELEMETRY_COLUMNS, SCHEMA_VERSION
 
 PROM = "http://127.0.0.1:9090"
@@ -177,4 +178,14 @@ def capture_window(
     )
 
 
-__all__ = ["COUNTERS", "OPER_METRIC", "CaptureResult", "capture_window"]
+def read_window_samples(path: Path) -> list[RawSample]:
+    """Load a §9.1 raw-telemetry Parquet into RawSamples for the §9.2 feature stage (read-only)."""
+    table = pq.ParquetFile(path).read()  # type: ignore[no-untyped-call]
+    rows = table.to_pylist()
+    return [
+        RawSample(t=r["event_time"].timestamp(), metric=r["metric"], value=float(r["value"]))
+        for r in rows
+    ]
+
+
+__all__ = ["COUNTERS", "OPER_METRIC", "CaptureResult", "capture_window", "read_window_samples"]
