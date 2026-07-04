@@ -26,6 +26,7 @@ from closcall.db.models import (
     RecoveryCheck,
     RemediationVersion,
 )
+from closcall.executor.audit_guard import AuditUnavailable
 
 ALLOWED_ACTIONS = {"set_admin_state"}
 ALLOWED_VALUES = {"enable"}
@@ -85,7 +86,24 @@ async def execute_job(session: AsyncSession, job_id: uuid.UUID, device: Device) 
 
     before = device.get_oper_state(node, iface)  # pre-state capture (§13.2)
     job.status = "running"
-    await session.flush()
+
+    # audit-write-first (§10/§13.3): persist mutation intent durably BEFORE touching the device;
+    # if the audit write fails, the state change never happens.
+    session.add(
+        AuditEvent(
+            actor_type="executor",
+            actor_id="executor",
+            action="execution.apply.intent",
+            entity_type="execution_job",
+            entity_id=str(job.id),
+            before_json={"oper_state": before},
+            after_json={"intended_value": value},
+        )
+    )
+    try:
+        await session.flush()
+    except Exception as exc:  # audit/db unavailable -> block the mutation
+        raise AuditUnavailable("audit write failed; execution blocked") from exc
 
     device.set_admin_state(node, iface, value)  # smallest guarded mutation
     after = device.get_oper_state(node, iface)  # read-back (§13.3)
