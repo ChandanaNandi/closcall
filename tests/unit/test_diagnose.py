@@ -60,8 +60,9 @@ def test_at_most_three_hypotheses_are_tested() -> None:
     assert res.outcome == "undiagnosed"
 
 
-def test_verified_but_unknown_class_gets_no_plan() -> None:
-    # a supported claim whose class isn't allow-listed -> diagnosed, but plan None
+def test_unrecognized_class_cannot_commit_even_with_supported_claim() -> None:
+    # a genuinely SUPPORTED claim under an arbitrary (model-invented) class must NOT commit — the
+    # relevance gate found via the 7b injection fixture (supported-irrelevant claim + fake class)
     ev = _oper("e1", 0.0, 10)
     claim = Claim(
         claim_id="c",
@@ -75,10 +76,27 @@ def test_verified_but_unknown_class_gets_no_plan() -> None:
         polarity=True,
         evidence_ids=("e1",),
     )
-    res = diagnose(_snap([ev]), _Fixed([Hypothesis("novel_class", SUBJ, (claim,))]))
-    assert (
-        res.outcome == "diagnosed" and res.plan_template is None
-    )  # can't map an un-allowlisted class
+    res = diagnose(_snap([ev]), _Fixed([Hypothesis("Operational State", SUBJ, (claim,))]))
+    assert res.outcome == "undiagnosed" and res.plan_template is None
+
+
+def test_recognized_class_needs_a_claim_that_entails_it() -> None:
+    # class link_down but the supported claim asserts the link is UP -> does not entail -> abstain
+    ev = _oper("e1", 1.0, 10)
+    up_claim = Claim(
+        claim_id="c",
+        predicate_type=Predicate.SUSTAINED,
+        subject=SUBJ,
+        metric_or_event="oper_state",
+        operator=">=",
+        comparison=0.5,
+        unit="state",
+        interval=(0.0, 30.0),
+        polarity=True,
+        evidence_ids=("e1",),
+    )
+    res = diagnose(_snap([ev]), _Fixed([Hypothesis("link_down", SUBJ, (up_claim,))]))
+    assert res.outcome == "undiagnosed"  # supported (link up) but does not entail link_down
 
 
 def test_diagnose_is_pure_no_snapshot_mutation() -> None:

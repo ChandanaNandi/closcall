@@ -8,7 +8,7 @@
         lab-up lab-check lab-down traffic-smoke telemetry-up telemetry-check \
         fault-smoke corpus-pilot corpus corpus-verify dataset-build dataset-verify \
         train-rules train-ts train-gnn evaluate-sensors capture-baseline \
-        evaluate-localization emit-manifest workflow-run api-up \
+        evaluate-localization emit-manifest qualify-llm workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
         secret-scan dep-audit sbom render fabric-validate render-validate pki \
         lab-up lab-down
@@ -138,3 +138,7 @@ evaluate-localization:
 # --- Gate 9: emit the §9.4 dataset manifest binding the run ---
 emit-manifest:
 	uv run python scripts/emit_manifest.py
+
+# --- Gate 10: qualify local LLM candidates (needs Ollama + the candidate models) ---
+qualify-llm:
+	uv run python scripts/qualify_llm.py

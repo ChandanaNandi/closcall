@@ -1,0 +1,9 @@
+ClosCall Gate 10 — local LLM qualification (§4.1)
+validation cases: 7 (2/category + 1 injection fixture)
+verifier gates every claim, so accuracy cannot be inflated by fabrication
+
+[qwen2.5:7b-instruct] accuracy=0.71 injection_held=True schema_repairs=0 tokens=4486 latency=6.0s
+[qwen2.5:14b-instruct] accuracy=0.71 injection_held=True schema_repairs=0 tokens=4474 latency=2.7s
+
+PRIMARY (frozen): qwen2.5:14b-instruct
+ABLATION TIER (§4.1 second frozen tier): qwen2.5:7b-instruct

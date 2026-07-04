@@ -30,10 +30,35 @@ from closcall.evidence.claims import (
 
 MAX_HYPOTHESES = 3
 
-# Verified diagnosis class -> allow-listed remediation template id (templates realized in Gate 11).
-DIAGNOSIS_TEMPLATES: dict[str, str] = {
-    "link_down": "tmpl-restart-interface",
-    "bgp_session_down": "tmpl-reset-bgp-session",
+
+@dataclass(frozen=True)
+class DiagnosisDef:
+    """A recognized diagnosis class + the supported-claim signature that ENTAILS it (§12.2)."""
+
+    diagnosis_class: str
+    metric: str  # the claim metric that defines this class
+    operators: frozenset[str]  # allowed operators for the defining claim
+    polarity: bool  # required polarity of the defining claim
+    plan_template: str  # allow-listed remediation template id (realized in Gate 11)
+
+    def entailed_by(self, claim: Claim) -> bool:
+        return (
+            claim.metric_or_event == self.metric
+            and claim.operator in self.operators
+            and claim.polarity == self.polarity
+        )
+
+
+# Recognized diagnosis classes. A hypothesis with an UNRECOGNIZED class can never commit, and a
+# recognized class commits only if a *supported* claim entails it — so a supported-but-irrelevant
+# claim (or an arbitrary model-invented class) cannot fabricate a diagnosis (found via 7b fixture).
+DIAGNOSIS_DEFINITIONS: dict[str, DiagnosisDef] = {
+    "link_down": DiagnosisDef(
+        "link_down", "oper_state", frozenset({"<", "<="}), True, "tmpl-restart-interface"
+    ),
+    "bgp_session_down": DiagnosisDef(
+        "bgp_session_down", "bgp_session_state", frozenset({"=="}), True, "tmpl-reset-bgp-session"
+    ),
 }
 
 
@@ -71,19 +96,21 @@ def diagnose(snapshot: Snapshot, hypothesizer: Hypothesizer) -> WorkflowResult:
     for hyp in hypotheses:
         verdicts = {c.claim_id: verify(c, snapshot) for c in hyp.claims}
         tested.append((hyp.diagnosis_class, verdicts))
-        # commit only if the hypothesis has claims and every one is supported
-        if hyp.claims and all(committable(v) for v in verdicts.values()):
-            plan = DIAGNOSIS_TEMPLATES.get(
-                hyp.diagnosis_class
-            )  # verified class -> allow-listed only
-            return WorkflowResult(
-                outcome="diagnosed",
-                diagnosis=Diagnosis(hyp.diagnosis_class, hyp.subject, hyp.claims),
-                plan_template=plan,
-                tested=tested,
-            )
+        definition = DIAGNOSIS_DEFINITIONS.get(hyp.diagnosis_class)
+        if definition is None or not hyp.claims:
+            continue  # unrecognized class or no claims -> cannot commit
+        if not all(committable(v) for v in verdicts.values()):
+            continue  # any unsupported/contradicted claim -> cannot commit
+        if not any(definition.entailed_by(c) for c in hyp.claims):
+            continue  # no supported claim ENTAILS the class -> cannot commit (relevance gate)
+        return WorkflowResult(
+            outcome="diagnosed",
+            diagnosis=Diagnosis(hyp.diagnosis_class, hyp.subject, hyp.claims),
+            plan_template=definition.plan_template,
+            tested=tested,
+        )
 
-    # nothing verified -> honest abstention, no plan (exit criterion 3)
+    # nothing verified/entailed -> honest abstention, no plan (exit criterion 3)
     return WorkflowResult(outcome="undiagnosed", diagnosis=None, plan_template=None, tested=tested)
 
 
@@ -121,9 +148,10 @@ class RuleHypothesizer:
 
 
 __all__ = [
-    "DIAGNOSIS_TEMPLATES",
+    "DIAGNOSIS_DEFINITIONS",
     "MAX_HYPOTHESES",
     "Diagnosis",
+    "DiagnosisDef",
     "Hypothesis",
     "Hypothesizer",
     "RuleHypothesizer",
