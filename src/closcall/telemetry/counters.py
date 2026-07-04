@@ -11,13 +11,13 @@ Pure functions — the golden parity tests (C05) pin their behavior.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 # SR Linux statistics counters are 64-bit unsigned.
 COUNTER_MAX = 2**64
 
 
-class Quality(str, Enum):
+class Quality(StrEnum):
     OK = "ok"
     RESET = "reset"  # counter went backwards -> device/counter reset (delta from 0)
     GAP = "gap"  # sample interval exceeds the allowed watermark -> not rate-able
