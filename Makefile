@@ -119,6 +119,10 @@ vertical-slice:
 test-contract test-integration test-security test-failure test-e2e \
 db-reset-test traffic-smoke \
 dataset-build \
-dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
+dataset-verify train-rules train-ts train-gnn workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
 	@$(NOT_READY)
+
+# --- Gate 9: detection evaluation (classical ensemble; read-only over the finished corpus) ---
+evaluate-sensors:
+	uv run python scripts/evaluate_sensors.py

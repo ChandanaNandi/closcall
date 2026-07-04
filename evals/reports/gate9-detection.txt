@@ -1,0 +1,16 @@
+ClosCall Gate 9 — detection evaluation (classical ensemble)
+frozen config (fit on TRAIN+VALIDATION): ewma_z=3.0 cusum_h=4.0 fsm_persistence=2 horizon_s=60.0
+
+[train] recall=0.60 precision=1.00 F1=0.75 FP/healthy=0.00 latency(med/p90)=5/15s [39/65 faults, 0/13 healthy fired]
+[validation] recall=0.60 precision=1.00 F1=0.75 FP/healthy=0.00 latency(med/p90)=5/15s [39/65 faults, 0/13 healthy fired]
+[test] recall=0.60 precision=1.00 F1=0.75 FP/healthy=0.00 latency(med/p90)=5/15s [78/130 faults, 0/26 healthy fired]
+
+per-class recall (all splits):
+  admin_shutdown       52/52  (blunt)
+  carrier_loss         52/52  (blunt)
+  impaired_link         0/52  (gray)
+  intermittent_link    52/52  (blunt)
+  rate_limited_uplink   0/52  (gray)
+
+METHOD: every incident truncated to a common 25s window — the collector used a longer window for gray faults, and detecting off that length is incident_duration leakage (§10.3, found R28). Without this fix gray faults falsely scored 52/52.
+NOTE (R23): gray tc-faults (rate_limited_uplink, impaired_link) produce no device-counter signal without traffic load — a documented detection blind spot, not a false negative bug.

@@ -524,3 +524,19 @@ SR-Linux telemetry (R23), so they enter as Gate-9 features, not this oper-state 
 - **Re-collection (v2):** campaign `gate8-full-corpus-v2` re-runs the identical balanced 312-incident
   matrix (same strata/seeds) with telemetry on; v1 retained as superseded provenance. Counts are now
   campaign-scoped in the runner/status/verify. Dep added: pyarrow 24.0.0.
+
+## R28. Gate 9 detection — window-length leak caught + honest result (2026-07-04)
+- **Leak:** first detection eval scored F1=1.00 with gray faults (impaired_link, rate_limited_uplink)
+  at 52/52 — impossible, since gray tc-faults leave no device-counter signal without traffic (R23).
+  Investigation: the octet-rate streams are IDENTICAL for gray and healthy (a ~30 B/s BGP-keepalive
+  pulse); the only difference is window LENGTH — the collector uses WINDOW_GRAY_S=40 for gray vs
+  WINDOW_BLUNT_S=25 elsewhere. CUSUM's warmup (5 samples) is only exceeded in the longer gray stream,
+  so it fired on window length, which correlates with fault_class = `incident_duration` leakage
+  (§10.3, FORBIDDEN_FEATURE_COLUMNS). Caught by refusing to trust a too-perfect number.
+- **Fix:** the evaluator truncates every incident to a common 25s window (EVAL_WINDOW_S) so length
+  cannot leak. Honest result: blunt faults 156/156 (real oper-state signal), gray 0/104 (no signal),
+  healthy 0 FP; test recall 0.60, precision 1.00, F1 0.75.
+- **Corpus note (not fixed now):** WINDOW_GRAY_S vs WINDOW_BLUNT_S in corpus_run bakes a
+  window-length/fault-class correlation into the raw windows. Mitigated at eval time by truncation;
+  a future collection should use a single window length for all classes to remove the confound at
+  source.
