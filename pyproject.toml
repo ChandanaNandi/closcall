@@ -50,6 +50,10 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom uses these calls in argument defaults by design (not B008).
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query", "fastapi.Path"]
+
 [tool.mypy]
 strict = true
 python_version = "3.12"
