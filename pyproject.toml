@@ -12,6 +12,11 @@ dependencies = [
     "pydantic-settings>=2.3",
     # YAML is the canon's config format (fabric.yaml, configs/*.yaml, Bible §5); PyYAML parses it.
     "pyyaml>=6.0",
+    # Persistence (Bible §4): SQLAlchemy 2 + Alembic + asyncpg on PostgreSQL 16.
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "asyncpg>=0.29",
+    "greenlet>=3.0",   # required by SQLAlchemy async (run_sync)
 ]
 
 [dependency-groups]

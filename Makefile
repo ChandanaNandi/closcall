@@ -90,9 +90,19 @@ telemetry-check:
 fault-smoke:
 	uv run python scripts/fault_smoke.py
 
+# --- Gate 6: database + deterministic vertical slice ---
+db-up:
+	docker compose up -d postgres
+
+db-migrate:
+	uv run alembic upgrade head
+
+vertical-slice:
+	uv run python scripts/vertical_slice.py
+
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
-db-up db-migrate db-reset-test traffic-smoke \
+db-reset-test traffic-smoke \
 corpus-pilot corpus dataset-build \
 dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:

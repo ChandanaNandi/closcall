@@ -1,0 +1,8 @@
+[PASS] fault active (admin_shutdown): leaf1 ethernet-1/1 oper-state=down
+[PASS] idempotent correlator: 100 duplicate signals -> 1 incident, 1 signal
+[PASS] typed claim (no LLM): oper-state==down -> supported
+[PASS] immutable plan digest: sha256=85002d0ca8dcbe89
+[PASS] duplicate request -> one job: 2 approve+enqueue requests -> 1 job
+[PASS] isolated executor recovery: execution=succeeded, ethernet-1/1 oper-state=up
+[PASS] recovery via executor, not injector cleanup: recovery passed + audit chain: ['execution.apply', 'incident.open']
+== 0 failed ==

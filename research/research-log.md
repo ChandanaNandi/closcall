@@ -424,3 +424,34 @@ up Postgres now would violate "simplify, never add."
 
 **telemetry_gap bug caught + fixed:** cleanup ran `start closcall-gnmic` (bare) instead of
 `docker start` — left gnmic stopped and crashed the campaign; fixed to full `docker start`.
+
+## R24. Gate 6 deterministic vertical slice (2026-07-03)
+
+First end-to-end incident chain with **zero ML/LLM**, against live fabric + PostgreSQL 16
+(pgvector image, pinned). Evidence: `evals/reports/gate6-slice.txt`. All exit criteria met:
+
+- **No LLM/neural:** rules detection + a typed predicate claim (oper-state==down → supported) +
+  a prebuilt allowlisted plan. Pure Python.
+- **Idempotency:** 100 duplicate signals → **1 incident, 1 signal** (unique
+  `(source,source_event_id)` + ON CONFLICT); 2 approve+enqueue requests → **1 execution job**
+  (unique `idempotency_key`).
+- **Injector cleanup ≠ remediation (§2.3):** the fault (`admin_shutdown`) stayed ACTIVE — the
+  chaos `clear()` was never called; the **isolated executor's** allowlisted `set_admin_state(enable)`
+  restored service (oper-state up), and recovery is attributable to it via the audit chain
+  (`incident.open` → `execution.apply`) + recovery_check passed.
+- **Isolated executor (§2.6/§13):** device-mutation capability lives only in the executor (injected
+  `Device`); prechecks (valid approval for exact digest, action/value allowlisted, target not a
+  mgmt interface), pre-state capture, guarded set, read-back, recovery predicate; ambiguous
+  read-back → `outcome_unknown`, never success.
+
+**Infra stood up:** SQLAlchemy 2.0.51 + Alembic 1.18.5 + asyncpg 0.31 + greenlet; PostgreSQL 16
+(pgvector) loopback-bound on **127.0.0.1:15432** (5432 was taken by a host postgres — §3.3 "not
+host-public" preserved). Alembic (the only schema-change mechanism, §2) created schemas
+core/audit/identity/evaluation + the 9 slice tables. Migration home for the chaos ledger
+(evaluation.fault_injections) is now available but wired at Gate 7.
+
+**Scoped forward:** the incident/remediation full state-machine transitions (Contracts §5) beyond
+the slice's open→execute→recover path; DB grant/role isolation (E02/I07) and CSRF/JWT (I-family)
+are the API/security gates (11); async-Alembic + DB contract tests in CI would need a CI Postgres
+service (added when the API gate lands). The slice's idempotency is proven live (orchestrator),
+with pure unit tests for claim/digest/ledger/counters (56 unit tests total).

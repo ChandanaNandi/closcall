@@ -29,6 +29,30 @@ services:
     networks: [closcall-mgmt]
     restart: unless-stopped
 
+  postgres:
+    image: pgvector/pgvector@sha256:ad2e18408bf447f62092a8a5259e7df10505c5a0360bd1a1853ac8b8b0763da2
+    container_name: closcall-postgres
+    environment:
+      POSTGRES_USER: closcall
+      POSTGRES_DB: closcall
+      POSTGRES_PASSWORD: ${CLOSCALL_DB_PASSWORD:?set CLOSCALL_DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:15432:5432"  # loopback-only (§3.3); 15432 avoids clashing with a host postgres
+    volumes:
+      - closcall-pgdata:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U closcall"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
 networks:
   closcall-mgmt:
     external: true              # created by containerlab (make lab-up)
+  data:
+    driver: bridge
+
+volumes:
+  closcall-pgdata:
