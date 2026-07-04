@@ -86,10 +86,14 @@ telemetry-down:
 telemetry-check:
 	uv run python scripts/telemetry_check.py
 
+# --- Gate 5: fault framework smoke campaign (needs fabric + telemetry up) ---
+fault-smoke:
+	uv run python scripts/fault_smoke.py
+
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
 db-up db-migrate db-reset-test traffic-smoke \
-fault-smoke corpus-pilot corpus dataset-build \
+corpus-pilot corpus dataset-build \
 dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
 	@$(NOT_READY)

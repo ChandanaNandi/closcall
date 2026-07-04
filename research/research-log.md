@@ -390,3 +390,37 @@ dashboard is J-gate polish); full 4-timestamp raw-telemetry Parquet (C03 persist
 dataset contract). **Fidelity note (C04):** all containers share the Docker-VM clock, so device
 clock-offset is ~0 here — the single-VM lab under-exercises real clock skew; the offset-validation
 handling exists but is not stress-tested until hardware (documented limit, §3 fidelity).
+
+## R23. Gate 5 fault framework (2026-07-03)
+
+Typed fault plugins (§8.2) with a durable write-ahead JSONL ledger (fsync) + reconciler
+(`src/closcall/chaos/{faults,ledger}.py`). Smoke campaign (`scripts/fault_smoke.py`) all PASS:
+
+- **7 fault classes, onset OBSERVED** (not command-completion): `healthy_control` (no-op),
+  `admin_shutdown` (gNMI admin-state → oper-down), `carrier_loss` (veth down → oper-down),
+  `intermittent_link` (carrier flaps), `rate_limited_uplink` (tc tbf → rate cap), `impaired_link`
+  (tc netem loss/delay), `telemetry_gap` (stop gnmic → collector down). Onset verified before the
+  ledger stamps ACTIVE, so labels align to observed onset (exit criterion).
+- **No dirty state** after campaign (no residual qdisc/down-interface/stopped-collector).
+- **Reconciler:** ledger `outstanding()` = 0 (planned→...→cleared per injection); write-ahead
+  cleanup payload stored BEFORE mutation; startup replay cleans or quarantines (§8.3).
+- **Honest taxonomy:** mechanism == label; no fault claims PFC/ECN/optics; every record
+  `simulated: true` (§2.12).
+
+**Spike findings:**
+- tc netem/tbf WORK in the linuxkit VM kernel: netem 40% → 38% ping loss (tc dropped 19/50); tbf
+  1mbit → iperf capped ~0.7 Mbit from 10G. (Earlier misleading "5%" reading was a transient; tc -s
+  drop counters are authoritative.)
+- **R6.1 queue-counter nuance:** the tc-based congestion injectors drop at the container veth qdisc,
+  NOT in the SR Linux dataplane queue model — so SR Linux `/qos` per-queue counters (paths exist,
+  R21) do NOT increment from our injectors. The observable congestion signals are the measured
+  rate-cap + interface/qdisc discards. This matches R6.1's fallback (drops+utilization proxy); the
+  ML congestion features (Gate 9) use utilization/rate/loss, not SR Linux per-queue drops. Honest,
+  not a blocker.
+
+**Ledger persistence decision:** durable JSONL (fsync) now; migrates to `evaluation.fault_injections`
+(Postgres, Contracts §4.3) at Gate 7. §8.3 requires "durable," not Postgres-specifically; standing
+up Postgres now would violate "simplify, never add."
+
+**telemetry_gap bug caught + fixed:** cleanup ran `start closcall-gnmic` (bare) instead of
+`docker start` — left gnmic stopped and crashed the campaign; fixed to full `docker start`.
