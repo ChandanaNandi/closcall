@@ -100,6 +100,9 @@ db-migrate:
 db-isolation:
 	uv run python scripts/db_isolation_check.py
 
+corpus:
+	uv run python scripts/corpus_run.py
+
 corpus-pilot:
 	uv run python scripts/corpus_pilot.py
 
