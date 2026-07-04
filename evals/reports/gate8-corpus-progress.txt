@@ -1,0 +1,1 @@
+corpus 312/312; strata filled 24/24; last batch +12 settled / 0 quarantined

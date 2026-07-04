@@ -6,7 +6,7 @@
 .PHONY: doctor bootstrap lint typecheck test-unit test-contract test-integration \
         test-security test-failure test-e2e db-up db-migrate db-reset-test \
         lab-up lab-check lab-down traffic-smoke telemetry-up telemetry-check \
-        fault-smoke corpus-pilot corpus dataset-build dataset-verify \
+        fault-smoke corpus-pilot corpus corpus-verify dataset-build dataset-verify \
         train-rules train-ts train-gnn evaluate-sensors workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
         secret-scan dep-audit sbom render fabric-validate render-validate pki \
@@ -105,6 +105,9 @@ corpus-status:
 
 corpus:
 	uv run python scripts/corpus_run.py
+
+corpus-verify:
+	uv run python scripts/corpus_verify.py
 
 corpus-pilot:
 	uv run python scripts/corpus_pilot.py
