@@ -1,0 +1,32 @@
+{
+  "code_revision": "d2dfd2a1f7a86fed164ff71968ecfb45db1c1f20",
+  "config_hash": "866969f36c7c465ea7bb8b349a061c2a97605457f49ce4d96edbbe348668c4dc",
+  "content_hashes": {
+    "corpus_windows_rollup": "9f259d2e9ed4d90869a9bfcde4bca35ee340c1b951ed7af70a6e3fecf0422f66(312 windows)",
+    "gate9-detection.txt": "594fdd170f2a3ecbb9700c566835e84e7d7ae86a90525440b647fedd3724be05",
+    "gate9-localization.txt": "d8e21be4e2a0e00e9e1db1fb80997a1d33211abd1febcc45df07a859872742d3"
+  },
+  "creation_command": "make corpus (v2) -> make capture-baseline -> make evaluate-sensors -> make evaluate-localization -> make emit-manifest",
+  "dataset_kind": "gate9-corpus",
+  "dependency_lock_hash": "091826627b9c8e810ffdeefbbd0f46820dc272a93cae847300f5c8565a3ea081",
+  "exclusions": [],
+  "feature_schema_hash": "35f6e540b9928d525c4d3d9266e3a5d0a5c0f4c25a6e448ae1811d0d6caaad7a",
+  "graph_schema_hash": "5f3c24c11b58b8f59bfd0e01b511fa4f7f6cee1bb38904799eb2679593f65b66",
+  "image_digests": {
+    "gnmic": "sha256:9538f93a9a85e996d0ad5f7c523835e874557be84b8d279c2a51d2f092b24c7e",
+    "postgres": "sha256:ad2e18408bf447f62092a8a5259e7df10505c5a0360bd1a1853ac8b8b0763da2",
+    "prometheus": "sha256:76947e7ef22f8a698fc638f706685909be425dbe09bd7a2cd7aca849f79b5f64",
+    "srlinux": "sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee"
+  },
+  "manifest_hash": "58d2cf31a55348bdb0af4b066f0a0dd5a5ea20d75b54b4ab6fe787ad5de84771",
+  "master_seed": 1337,
+  "seeds": {
+    "master": 1337
+  },
+  "source_run_ids": [
+    "gate8-full-corpus-v2"
+  ],
+  "split_manifest_hash": "bd3070efaf4684f766f9e4a5997753bd3072d6f2c3ee1edf0ca6808dabc1860d",
+  "split_protocol": "location-inductive",
+  "topology_hash": "1f9ea4a7da6f6e9a2faf690356fa5cabc761237a0a6c06f716831885362d34c2"
+}

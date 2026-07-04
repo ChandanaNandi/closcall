@@ -95,8 +95,11 @@ from manifest/run ID." Against that:
 - ✅ **CIs** — detection: 95% incident-clustered bootstrap (n=2000, seed=1337), reproducible (§10.4).
 - ⚠️ **ablations** — the §11.9 invariance tracks presuppose a neural model; none is built (the rule
   baseline is unbeatable on this corpus, §11), so the ablations are N/A here — documented, not skipped.
-- ◻️ **reproduce from manifest/run ID** — deterministic + read-only from the verified corpus; a
-  formal §9.4 dataset-manifest binding is built (`datasets/manifest.py`) but not yet emitted.
+- ✅ **reproduce from manifest/run ID** — §9.4 dataset manifest emitted
+  (`artifacts/manifests/gate9-dataset.json`, `make emit-manifest`): binds source run id, split
+  protocol + hash, topology/config/feature/graph schema hashes, code revision, dependency-lock hash,
+  image digests, seeds, exclusions, and a §9.1 window content roll-up; manifest hash reproducible.
+  Split-manifest header persisted to `evaluation.split_manifests`.
 
 **Conclusion:** detection and localization are complete, honest, and leak-audited. Gate 9 is **not
 formally signed off** — it lacks a neural-model track (deliberately, per §11) and a bound dataset
