@@ -16,7 +16,8 @@ dependencies = [
     "sqlalchemy>=2.0",
     "alembic>=1.13",
     "asyncpg>=0.29",
-    "greenlet>=3.0",   # required by SQLAlchemy async (run_sync)
+    "greenlet>=3.0", # required by SQLAlchemy async (run_sync)
+    "pyarrow>=24.0.0",
 ]
 
 [dependency-groups]

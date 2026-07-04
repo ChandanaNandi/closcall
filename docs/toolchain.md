@@ -39,6 +39,8 @@ including CI). Key locked versions at Gate 1: pydantic 2.13.4, pydantic-settings
 ruff 0.15.20, mypy 2.1.0, pytest 9.1.1, hypothesis 6.156.1, pip-audit 2.10.1, pre-commit 4.6.0.
 Added at Gate 2: pyyaml 6.0.3 (parses the canon's YAML source of truth, `lab/fabric.yaml` and
 `configs/*.yaml`); types-pyyaml (dev) for mypy strict.
+Added at Gate 9: pyarrow 24.0.0 (writes/reads the §9.1 raw-telemetry and §9.2 causal-feature Parquet;
+Contracts §9).
 
 GitHub Actions are pinned by full commit SHA in `.github/workflows/ci.yml`:
 actions/checkout v7.0.0 `9c091bb2…`, astral-sh/setup-uv v8.2.0 `fac544c0…`,

@@ -35,6 +35,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from closcall.chaos.faults import Fault  # noqa: E402
+from closcall.datasets.telemetry_window import capture_window  # noqa: E402
 from closcall.db.engine import make_sessionmaker  # noqa: E402
 from closcall.db.models import (  # noqa: E402
     Artifact,
@@ -46,7 +47,15 @@ from closcall.db.models import (  # noqa: E402
 CORPUS_MIN_FREE_GIB = 60
 WINDOW_BLUNT_S = 25  # blunt faults (down/flap): short window
 WINDOW_GRAY_S = 40  # congestion/impaired: longer window (still measurement floor, not convergence)
-CAMPAIGN_KEY = "gate8-full-corpus"
+# v2: telemetry-backed corpus. v1 ("gate8-full-corpus") persisted labels only (no §9.1 window) and
+# is kept as superseded provenance. v2 captures the causal telemetry window per incident (C03/§9.1).
+CAMPAIGN_KEY = "gate8-full-corpus-v2"
+DATA_ROOT = REPO / "data"
+
+
+def topology_hash() -> str:
+    return hashlib.sha256((REPO / "lab" / "fabric.yaml").read_bytes()).hexdigest()[:16]
+
 
 # Pre-registered stratum matrix: fault_class x leaf. Split is location-inductive (leaf1/2 train,
 # leaf3/4 test). Interface varies within a cell by incident index for within-stratum diversity.
@@ -122,12 +131,15 @@ def oper_state(node: str, iface_srl: str) -> str:
     return "down" if "down" in out else ("up" if "up" in out else "unknown")
 
 
-async def counts_by_stratum(Session) -> dict[tuple[str, str], int]:  # type: ignore[no-untyped-def]
+async def counts_by_stratum(Session, cid) -> dict[tuple[str, str], int]:  # type: ignore[no-untyped-def]
     async with Session() as s:
         rows = (
             await s.execute(
                 select(EvalFaultInjection.fault_class, EvalFaultInjection.shard_key, func.count())
-                .where(EvalFaultInjection.status == "settled")
+                .where(
+                    EvalFaultInjection.status == "settled",
+                    EvalFaultInjection.campaign_id == cid,
+                )
                 .group_by(EvalFaultInjection.fault_class, EvalFaultInjection.shard_key)
             )
         ).all()
@@ -152,7 +164,7 @@ async def campaign_id(Session) -> uuid.UUID:  # type: ignore[no-untyped-def]
     return cid
 
 
-async def collect_one(Session, cid, fc, leaf, netdev, iface, split, seed) -> str:  # type: ignore[no-untyped-def]
+async def collect_one(Session, cid, topo, fc, leaf, netdev, iface, split, seed) -> str:  # type: ignore[no-untyped-def]
     fault = Fault(fault_class=fc, node=leaf, iface_netdev=netdev, iface_srl=iface)
     target = {"node": leaf, "interface": iface, "link": f"{leaf}:{iface}"}
     onset_time = datetime.now(UTC)
@@ -176,6 +188,18 @@ async def collect_one(Session, cid, fc, leaf, netdev, iface, split, seed) -> str
     time.sleep(WINDOW_GRAY_S if gray(fc) else WINDOW_BLUNT_S)
     onset_ok = fault.verify_onset() if fc != "healthy_control" else True
     feature = oper_state(leaf, iface)
+    # capture causal telemetry window [onset, now] BEFORE clearing (signal present; §9.1/C03)
+    window_end = datetime.now(UTC)
+    cap = capture_window(
+        node=leaf,
+        iface_srl=iface,
+        window_start=onset_time,
+        window_end=window_end,
+        campaign_key=CAMPAIGN_KEY,
+        topology_hash=topo,
+        incident_id=str(inj_id),
+        out_root=DATA_ROOT,
+    )
     fault.clear()
     time.sleep(3)
     lab_clean = clean_between(leaf, netdev)
@@ -185,6 +209,8 @@ async def collect_one(Session, cid, fc, leaf, netdev, iface, split, seed) -> str
         "fault_class": fc,
         "target": target,
         "onset_at": onset_time.isoformat(),
+        "window_start": onset_time.isoformat(),
+        "window_end": window_end.isoformat(),
         "split": split,
         "observed_feature": feature,
     }
@@ -211,7 +237,18 @@ async def collect_one(Session, cid, fc, leaf, netdev, iface, split, seed) -> str
                     media_type="application/json",
                 )
             )
+            s.add(
+                Artifact(
+                    kind="raw_telemetry_window",
+                    uri=str(cap.path.relative_to(REPO)),
+                    sha256=cap.sha256,
+                    byte_size=cap.byte_size,
+                    media_type="application/vnd.apache.parquet",
+                )
+            )
         await s.commit()
+    if status != "settled":
+        cap.path.unlink(missing_ok=True)  # quarantined: not part of the corpus
     return status
 
 
@@ -228,7 +265,8 @@ async def run() -> int:
 
     Session = make_sessionmaker()
     cid = await campaign_id(Session)
-    counts = await counts_by_stratum(Session)
+    topo = topology_hash()
+    counts = await counts_by_stratum(Session, cid)
     total = sum(counts.values())
     print(
         f"corpus: {total}/{target_total} valid incidents; per-cell target {per_cell}; batch {batch}"
@@ -246,7 +284,9 @@ async def run() -> int:
         if free < CORPUS_MIN_FREE_GIB:
             print("[HALT] disk floor reached mid-run; stopping safely")
             break
-        status = await collect_one(Session, cid, fc, leaf, netdev, iface, split_of(leaf), idx + 1)
+        status = await collect_one(
+            Session, cid, topo, fc, leaf, netdev, iface, split_of(leaf), idx + 1
+        )
         if status == "settled":
             counts[cell] = counts.get(cell, 0) + 1
             collected += 1
@@ -255,7 +295,7 @@ async def run() -> int:
         idx += 1
         free = shutil.disk_usage("/").free / (1024**3)
 
-    total_now = sum((await counts_by_stratum(Session)).values())
+    total_now = sum((await counts_by_stratum(Session, cid)).values())
     filled = sum(1 for c in cells if counts.get(c, 0) >= per_cell)
     print(f"batch done: +{collected} settled, {quarantined} quarantined")
     print(f"corpus now: {total_now}/{target_total}; strata filled {filled}/{len(cells)}")

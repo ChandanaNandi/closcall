@@ -14,8 +14,9 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from closcall.db.engine import make_sessionmaker  # noqa: E402
-from closcall.db.models import EvalFaultInjection  # noqa: E402
+from closcall.db.models import EvalCampaign, EvalFaultInjection  # noqa: E402
 
+CAMPAIGN_KEY = "gate8-full-corpus-v2"
 TARGET = 300
 CLASSES = (
     "admin_shutdown",
@@ -32,11 +33,21 @@ PER_CELL = -(-TARGET // (len(CLASSES) * len(LEAVES)))  # ceil
 async def main() -> int:
     Session = make_sessionmaker()
     async with Session() as s:
+        cid = (
+            await s.execute(
+                select(EvalCampaign.id).where(EvalCampaign.campaign_key == CAMPAIGN_KEY)
+            )
+        ).scalar_one_or_none()
+        if cid is None:
+            bar = "-" * 30
+            print(f"ClosCall corpus  [{bar}] 0/{TARGET} settled  (campaign not started)")
+            return 0
+        scoped = EvalFaultInjection.campaign_id == cid
         settled = dict(
             (
                 await s.execute(
                     select(EvalFaultInjection.fault_class, func.count())
-                    .where(EvalFaultInjection.status == "settled")
+                    .where(EvalFaultInjection.status == "settled", scoped)
                     .group_by(EvalFaultInjection.fault_class)
                 )
             ).all()
@@ -50,7 +61,7 @@ async def main() -> int:
                         ),
                         func.count(),
                     )
-                    .where(EvalFaultInjection.status == "settled")
+                    .where(EvalFaultInjection.status == "settled", scoped)
                     .group_by(EvalFaultInjection.fault_class, EvalFaultInjection.shard_key)
                 )
             ).all()
@@ -59,21 +70,21 @@ async def main() -> int:
             await s.execute(
                 select(func.count())
                 .select_from(EvalFaultInjection)
-                .where(EvalFaultInjection.status == "settled")
+                .where(EvalFaultInjection.status == "settled", scoped)
             )
         ).scalar_one()
         quar = (
             await s.execute(
                 select(func.count())
                 .select_from(EvalFaultInjection)
-                .where(EvalFaultInjection.status == "quarantined")
+                .where(EvalFaultInjection.status == "quarantined", scoped)
             )
         ).scalar_one()
         inflight = (
             await s.execute(
                 select(func.count())
                 .select_from(EvalFaultInjection)
-                .where(EvalFaultInjection.status == "injecting")
+                .where(EvalFaultInjection.status == "injecting", scoped)
             )
         ).scalar_one()
 

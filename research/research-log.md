@@ -504,3 +504,23 @@ feature-capture choice, not a telemetry defect.
 enough to prove the split/label/parity invariants. The full pre-registered corpus (>=300 across the
 stratum matrix) is Gate 8 (full corpus). tc-based congestion faults show a host-plane signal, not
 SR-Linux telemetry (R23), so they enter as Gate-9 features, not this oper-state alignment pilot.
+
+## R27. Gate 9 STOP — §9.1 raw-telemetry persistence gap + correction (2026-07-04)
+- **Finding (STOP):** opening Gate 9 (§11), the corpus had no telemetry to learn from. The Gate-8
+  runner persisted only a scalar oper-state + a `mem://` label artifact per incident; the §9.1
+  raw-telemetry Parquet writer (C03, Contracts §9.1) was frozen as a schema but never implemented
+  (I deferred it in R-log Gate-4: "C03 persistence is the Gate 7 dataset contract"). Prometheus
+  retention is 2h (`compose.yaml`), so the v1 corpus's windows are expired and unrecoverable, and
+  a `min_over_time[12h]` probe returned empty.
+- **No synthetic escape:** fabricating telemetry from labels is canon-rejected (R1-era decision:
+  "generative synthetic telemetry — circular, the detector learns the generator").
+- **Correction (pilot-approved):** implemented `datasets/telemetry_window.py` — captures the causal
+  window [onset, onset+W] per incident by range-querying Prometheus for the target link's counters
+  (in/out octets, error/discarded packets) + oper-state, writing a §9.1-conformant Parquet (14
+  frozen columns, partitioned by campaign/topo/date, incident in filename) hashed into a
+  `raw_telemetry_window` Artifact. Capture runs at collection time (data seconds old, within
+  retention). Fidelity note C04: single-VM shared clock -> event/received/ingested near-identical;
+  received/ingested record capture read time (documented limit).
+- **Re-collection (v2):** campaign `gate8-full-corpus-v2` re-runs the identical balanced 312-incident
+  matrix (same strata/seeds) with telemetry on; v1 retained as superseded provenance. Counts are now
+  campaign-scoped in the runner/status/verify. Dep added: pyarrow 24.0.0.

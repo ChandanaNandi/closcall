@@ -29,6 +29,9 @@ from sqlalchemy import func, select
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
+import pyarrow.parquet as pq  # noqa: E402
+
+from closcall.datasets.schemas import RAW_TELEMETRY_COLUMNS  # noqa: E402
 from closcall.db.engine import make_sessionmaker  # noqa: E402
 from closcall.db.models import (  # noqa: E402
     Artifact,
@@ -37,7 +40,7 @@ from closcall.db.models import (  # noqa: E402
     EvalGroundTruthLabel,
 )
 
-CAMPAIGN_KEY = "gate8-full-corpus"
+CAMPAIGN_KEY = "gate8-full-corpus-v2"
 CLASSES = (
     "admin_shutdown",
     "carrier_loss",
@@ -110,6 +113,14 @@ async def run() -> int:
             .scalars()
             .all()
         }
+        telem = {
+            a.uri.split("incident-")[1].split(".parquet")[0]: a
+            for a in (
+                await s.execute(select(Artifact).where(Artifact.kind == "raw_telemetry_window"))
+            )
+            .scalars()
+            .all()
+        }
 
     # --- 1. pre-registered stratum counts are met ---
     cells: dict[tuple[str, str], int] = {}
@@ -156,6 +167,37 @@ async def run() -> int:
         f"{hash_ok}/{len(settled)} label hashes recompute; {art_ok}/{len(settled)} artifacts match"
         if not bad
         else f"{len(bad)} bad: {bad[:5]}",
+    )
+
+    # --- 2b. §9.1 raw-telemetry windows present, hash-verify, non-empty, schema-conformant ---
+    tel_ok = 0
+    tel_bad: list[str] = []
+    for inj in settled:
+        art = telem.get(str(inj.id))
+        if art is None:
+            tel_bad.append(f"{inj.id}:no-window")
+            continue
+        path = REPO / art.uri
+        if not path.exists():
+            tel_bad.append(f"{inj.id}:file-missing")
+            continue
+        raw = path.read_bytes()
+        pf = pq.ParquetFile(path)
+        if (
+            hashlib.sha256(raw).hexdigest() == art.sha256
+            and len(raw) == art.byte_size
+            and pf.metadata.num_rows > 0
+            and tuple(pf.schema_arrow.names) == RAW_TELEMETRY_COLUMNS
+        ):
+            tel_ok += 1
+        else:
+            tel_bad.append(f"{inj.id}:window-bad")
+    emit(
+        tel_ok == len(settled),
+        "telemetry windows verify (§9.1)",
+        f"{tel_ok}/{len(settled)} raw-telemetry windows hash-verify, non-empty, schema-conformant"
+        if not tel_bad
+        else f"{len(tel_bad)} bad: {tel_bad[:5]}",
     )
 
     # --- 3a. split invariant (E06): train/test link groups disjoint ---
