@@ -18,6 +18,9 @@ dependencies = [
     "asyncpg>=0.29",
     "greenlet>=3.0", # required by SQLAlchemy async (run_sync)
     "pyarrow>=24.0.0",
+    "fastapi>=0.139.0",
+    "argon2-cffi>=25.1.0",
+    "pyjwt>=2.13.0",
 ]
 
 [dependency-groups]
@@ -29,6 +32,7 @@ dev = [
     "pip-audit>=2.7",
     "pre-commit>=4.0",
     "types-pyyaml>=6.0",
+    "httpx>=0.28.1",
 ]
 
 [build-system]
