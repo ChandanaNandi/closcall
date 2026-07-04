@@ -100,6 +100,9 @@ db-migrate:
 db-isolation:
 	uv run python scripts/db_isolation_check.py
 
+corpus-status:
+	uv run python scripts/corpus_status.py
+
 corpus:
 	uv run python scripts/corpus_run.py
 
@@ -112,7 +115,7 @@ vertical-slice:
 # --- Later gates ---
 test-contract test-integration test-security test-failure test-e2e \
 db-reset-test traffic-smoke \
-corpus dataset-build \
+dataset-build \
 dataset-verify train-rules train-ts train-gnn evaluate-sensors workflow-run \
 api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
 	@$(NOT_READY)
