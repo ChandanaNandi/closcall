@@ -1,0 +1,5 @@
+[PASS] C02 every node appears: 6/6 switches present, 720 oper-state series, bounded labels
+[PASS] state-change visibility: leaf1 ethernet-1/1 down observed in 6.1s (bound 20.0s)
+[PASS] C06/C07 collector-interruption blocks automation: gnmic stopped -> automation blocked in 21s; restored healthy
+[PASS] C08 evidence snapshot hash reproduces: as-of snapshot hash stable: 8152f7a3c311d8ce
+== 0 failed ==

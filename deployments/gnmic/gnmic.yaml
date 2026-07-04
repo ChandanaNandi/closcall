@@ -45,3 +45,4 @@ outputs:
     listen: ":9273"
     metric-prefix: closcall
     append-subscription-name: true
+    strings-as-labels: true       # emit string leaves (oper-state, session-state) as labelled gauges

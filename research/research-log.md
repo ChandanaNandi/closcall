@@ -357,3 +357,36 @@ gNMI verified working on the pinned 25.3.3 image via gnmic 0.46.0
   is the reliable secondary if so.
 - Encoding gotcha: gNMI Get requires an explicit encoding (`-e json_ietf`); default encoding 0 is
   rejected by SR Linux.
+
+## R22. Gate 4 telemetry acceptance (2026-07-03)
+
+Observation plane: gnmic 0.46.0 -> Prometheus 3.6.0 (both pinned by digest), static targets on the
+closcall-mgmt net, loopback-bound Prometheus (127.0.0.1:9090). All four written exit criteria pass;
+evidence in `evals/reports/gate4-telemetry.txt`.
+
+- **C02 every node appears:** 6/6 switches, 720 oper-state series, bounded labels (source,
+  interface_name, oper_state, subscription_name — no free-text/unbounded labels, §6).
+- **State-change visibility:** leaf1 ethernet-1/1 admin-down observed in Prometheus in **6.1 s**
+  (bound 20 s). ON_CHANGE subscription + 5 s scrape.
+- **C06/C07 collector interruption blocks automation (fail-closed):** stopping the gnmic collector
+  made the automation gate `_blocked()` return true within ~21 s (via `up{job=gnmic}=0` and sample
+  staleness); restored healthy after restart.
+- **C08 evidence snapshot hash reproduces:** as-of Prometheus query -> canonical serialization ->
+  sha256 identical across repeats.
+- **C05 counter integrity (golden unit tests):** reset/wrap/gap/duplicate/cold-start/zero-variance
+  handled; never forward-fills across a gap (§9.2). `src/closcall/telemetry/counters.py`.
+- **Logs (§9.1):** syslog normalizer (RFC 3164 -> node/facility/severity/tag/event-time, raw always
+  preserved) implemented + unit-tested; SR Linux `system logging remote-server` export syntax
+  verified on-image.
+
+**Findings:**
+- gnmic's Prometheus output DROPS string-valued leaves by default; `strings-as-labels: true` is
+  required so oper-state/session-state (the failure signals) become labelled gauges.
+- **R6.1 queue-counter increment-under-load** still to confirm in Gate 5 (paths exist, R21).
+
+**Scoped forward (not exit-gated in Gate 4):** live end-to-end syslog capture wiring + Drain3
+clustering (feeds incident/evidence gates); Grafana dashboard (Prometheus is queryable now; a demo
+dashboard is J-gate polish); full 4-timestamp raw-telemetry Parquet (C03 persistence is the Gate 7
+dataset contract). **Fidelity note (C04):** all containers share the Docker-VM clock, so device
+clock-offset is ~0 here — the single-VM lab under-exercises real clock skew; the offset-validation
+handling exists but is not stress-tested until hardware (documented limit, §3 fidelity).
