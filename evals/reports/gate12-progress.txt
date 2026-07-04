@@ -1,0 +1,12 @@
+ClosCall — Gate 12 (controlled evaluation) — live progress
+started:      2026-07-04 15:42:54
+last update:  2026-07-04 15:42:54
+elapsed:      0m
+
+  [ ] 1. Consolidated detection/localization study (from immutable run IDs)
+  [ ] 2. Policy-only vs interactive reasoning study (§12.4)
+  [ ] 3. End-to-end factorial + offline safety eval
+  [ ] 4. NIKA adapter (agent-only external result) OR documented limitation
+  [ ] 5. Exit review (reports from run IDs; NIKA paper vs repo distinguished)
+
+status: opening gate — assessing NIKA external dependency...

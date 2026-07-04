@@ -121,7 +121,7 @@ test-contract test-integration test-security test-failure test-e2e \
 db-reset-test traffic-smoke \
 dataset-build \
 dataset-verify train-rules train-ts train-gnn workflow-run \
-api-up executor-up evaluate-agent evaluate-e2e nika demo reports:
+api-up executor-up evaluate-agent evaluate-e2e nika demo:
 	@$(NOT_READY)
 
 # --- Gate 9: detection evaluation (classical ensemble; read-only over the finished corpus) ---
@@ -142,3 +142,7 @@ emit-manifest:
 # --- Gate 10: qualify local LLM candidates (needs Ollama + the candidate models) ---
 qualify-llm:
 	uv run python scripts/qualify_llm.py
+
+# --- Gate 12: consolidated evaluation report (anchored to the immutable §9.4 run id) ---
+reports:
+	uv run python scripts/consolidate_eval.py
