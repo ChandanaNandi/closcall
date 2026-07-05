@@ -1,6 +1,6 @@
-ClosCall — localization evaluation (v3 under-load corpus; SUPERSEDES traffic-free finding)
-candidates=8 fabric links; root cause is a leaf-uplink physical link (§4.2). chance top1=0.125.
-split: location-inductive (train=leaf1, val=leaf2, TEST=leaf3+leaf4), physical-link-disjoint.
+ClosCall — localization eval (v3 under-load corpus; SUPERSEDES traffic-free finding)
+candidates=8 fabric links; root cause = leaf-uplink link (§4.2). chance top1=0.125.
+split: location-inductive (train=leaf1 val=leaf2 TEST=leaf3+4), physical-link-disjoint.
 models: oper-state RULE | per-link MLP (§11.7) | GNN (§11.8). Feature ablation v1 vs v2.
 
 AUROC (test), per class:
@@ -17,19 +17,22 @@ gray exact-link TOP-1 (test) — the honest weak spot:
   rate_limited_uplink   0.000   0.385   0.885   0.346   0.846
   impaired_link         0.000   0.346   0.731   0.346   0.462
 
-CORRECTED FINDING (replaces the old 'neural model cannot beat the rule, so it is not built'):
-1. The oper-state RULE is PROVABLY BLIND to gray faults (AUROC exactly 0.500) — under load the
-   link stays oper-up, so state alone carries no signal. It is strong on blunt faults (~0.92).
+CORRECTED FINDING (replaces old 'neural model cannot beat the rule, so it is not built'):
+1. The oper-state RULE is PROVABLY BLIND to gray faults (AUROC exactly 0.500) — under
+   load the link stays oper-up. It is strong on blunt faults (~0.92).
 2. LEARNED MODELS RECOVER GRAY-FAULT LOCALIZATION THE RULE CANNOT — even from frozen v1
-   aggregate features (MLP ~0.67, GNN ~0.69-0.72). The old conclusion was a hollow-corpus artifact.
-3. THE GRAY SIGNAL LIVES SUBSTANTIALLY IN TEMPORAL STRUCTURE: adding strictly-causal temporal
-   channels (v1->v2) lifts gray AUROC to ~0.91 and gray top1 from ~0.35 to 0.73-0.89 (MLP). The
-   controlled ablation localizes WHICH feature class carries the signal.
-4. MODEL COMPARISON IS NUANCED (reported, not hidden): the GNN's relational message-passing leads
+   aggregate features (MLP ~0.67, GNN ~0.69-0.72). Old conclusion was a hollow-corpus artifact.
+3. THE GRAY SIGNAL LIVES SUBSTANTIALLY IN TEMPORAL STRUCTURE: adding strictly-causal
+   temporal channels (v1->v2) lifts gray AUROC to ~0.91 and top1 from ~0.35 to 0.73-0.89
+   (MLP). The controlled ablation localizes WHICH feature class carries the signal.
+4. MODEL COMPARISON IS NUANCED (reported, not hidden): the GNN's message-passing leads
    under impoverished v1 features (impaired 0.721 vs MLP 0.664), but temporal features let a
-   simpler MLP match/beat it (impaired v2: MLP 0.910 vs GNN 0.721, flat) — a data/tuning limit on
-   only 26 training incidents, stated plainly.
-5. HONEST CEILING & CONTROL: gray top1 under aggregate features ~0.35; healthy_control at chance
-   for all methods (no manufactured localization, no position leakage).
-Full tables + 95% CIs: gate12_5-localization-v1.txt, gate12_5-localization-v2.txt, gate12_5-ablation.txt.
+   simpler MLP match/beat it (impaired v2: MLP 0.910 vs GNN 0.721, flat).
+   CAVEAT: the GNN's flat impaired result may reflect training-data scarcity (26
+   impaired-class train incidents under the location-inductive split), NOT a ceiling;
+   NOT a clean 'temporal MLP beats GNN' verdict. Fairer leakage-safe check =
+   leave-one-leaf-out 4-fold CV (never replacing the frozen leaf3/leaf4 headline).
+5. HONEST CEILING & CONTROL: gray top1 under aggregate features ~0.35; healthy_control at
+   chance for all methods (no manufactured localization, no position leakage).
+Full tables + CIs: gate12_5-localization-v1.txt, -v2.txt, gate12_5-ablation.txt.
 Pre-registration (order + hypotheses committed before running): gate12_5-preregistration.txt.

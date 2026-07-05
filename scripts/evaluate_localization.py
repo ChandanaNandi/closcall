@@ -78,8 +78,11 @@ async def run() -> int:
         "   (MLP). The controlled ablation localizes WHICH feature class carries the signal.",
         "4. MODEL COMPARISON IS NUANCED (reported, not hidden): the GNN's message-passing leads",
         "   under impoverished v1 features (impaired 0.721 vs MLP 0.664), but temporal features let a",  # noqa: E501
-        "   simpler MLP match/beat it (impaired v2: MLP 0.910 vs GNN 0.721, flat) — a data/tuning",
-        "   limit on only 26 training incidents, stated plainly.",
+        "   simpler MLP match/beat it (impaired v2: MLP 0.910 vs GNN 0.721, flat).",
+        "   CAVEAT: the GNN's flat impaired result may reflect training-data scarcity (26",
+        "   impaired-class train incidents under the location-inductive split), NOT a ceiling;",
+        "   NOT a clean 'temporal MLP beats GNN' verdict. Fairer leakage-safe check =",
+        "   leave-one-leaf-out 4-fold CV (never replacing the frozen leaf3/leaf4 headline).",
         "5. HONEST CEILING & CONTROL: gray top1 under aggregate features ~0.35; healthy_control at",
         "   chance for all methods (no manufactured localization, no position leakage).",
         "Full tables + CIs: gate12_5-localization-v1.txt, -v2.txt, gate12_5-ablation.txt.",

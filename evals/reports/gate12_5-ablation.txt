@@ -22,9 +22,13 @@ feature sets (the ONLY thing that changes v1->v2; pre-registered, see gate12_5-p
    lower mean — the controlled ablation localizes exactly which feature class carries the signal.
 4. MODEL COMPARISON IS NUANCED (reported, not hidden): the GNN's relational message-passing wins
    under impoverished v1 aggregate features (impaired 0.721 vs MLP 0.664), but temporal features let
-   a simpler MLP match or beat it (impaired v2: MLP 0.910 vs GNN 0.721 — GNN flat on impaired). On
-   only 26 training incidents the GNN's neighbor-aggregation appears to dilute node-specific temporal
-   detail; a data/tuning limit, stated plainly.
+   a simpler MLP match or beat it (impaired v2: MLP 0.910 vs GNN 0.721 — GNN flat on impaired).
+   CAVEAT (do not read this as a clean 'temporal MLP beats GNN' verdict): the GNN's flat impaired
+   result may reflect TRAINING-DATA SCARCITY (26 impaired-class training incidents under the
+   location-inductive split, fit on leaf1+leaf2), NOT an inherent model ceiling. The location-inductive
+   split already folds in the maximum training signal it permits without touching the frozen leaf3/leaf4
+   test; a fairer, leakage-safe comparison would be a supplementary leave-one-leaf-out 4-fold location-CV
+   (3 training leaves/fold), which must be labeled supplementary and never replace the frozen headline.
 5. HONEST CEILING & CONTROL: gray top1 under aggregate features is only ~0.35; healthy_control sits
    at chance for all methods (MLP 0.50) — no manufactured localization, no position leakage.
 
