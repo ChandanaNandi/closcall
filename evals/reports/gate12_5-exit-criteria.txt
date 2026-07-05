@@ -1,0 +1,46 @@
+========================================================================
+GATE 12.5 — CORPUS EXIT-CRITERIA CHECK (v3, under load)
+========================================================================
+
+[1] INTEGRITY
+    settled incidents ............ 312
+    incidents with full 16/16 .... 312  (want 312)
+    endpoint files on disk ....... 4992  (want 4992)
+    DB artifact rows (v3) ........ 4992
+    ground-truth labels present .. 312/312
+    sha256 spot-check ............ 125/125 match
+    => INTEGRITY PASS
+
+[2] LEARNABLE SIGNAL — faulted link vs its 7 fabric peers, one fixed a-priori detector
+    Primary metric: AUROC = P(faulted-link degradation score > a random peer's), 0.5 = chance.
+    Threshold-free, control-calibrated. Score = one-sided z(util-deficit)+z(loss-excess)+5*oper_down.
+    Secondary: top-1 of 8 (chance 0.125) and mean rank (chance 4.5).
+
+    class                  n   AUROC          95% CI    top1 mean_rk  naive_top1
+    admin_shutdown        52   0.923 [0.907,0.937]   0.365    1.69       0.404
+    carrier_loss          52   0.912 [0.899,0.924]   0.212    1.83       0.558
+    intermittent_link     52   0.987 [0.978,0.994]   0.923    1.08       0.365
+    rate_limited_uplink   52   0.643 [0.572,0.712]   0.154    3.58       0.135
+    impaired_link         52   0.545 [0.460,0.626]   0.135    4.25       0.115
+    healthy_control       52   0.531 [0.445,0.618]   0.173    4.29       0.154
+
+[VERDICT] Gate 5 row: 'congestion and gray failures produce learnable signatures'  (separable = AUROC 95% CI-lo > chance 0.50)
+    healthy_control consistent with chance (CI [0.445,0.618] includes 0.5) — control honest ... True
+    admin_shutdown       AUROC=0.923 CI-lo=0.907  separable=True
+    carrier_loss         AUROC=0.912 CI-lo=0.899  separable=True
+    intermittent_link    AUROC=0.987 CI-lo=0.978  separable=True
+    rate_limited_uplink  AUROC=0.643 CI-lo=0.572  separable=True
+    impaired_link        AUROC=0.545 CI-lo=0.460  separable=False
+
+  ===> EXIT CRITERIA: QUALIFIED PASS — proceed, with impaired_link FLAGGED.
+       Integrity perfect. 4/5 faulted classes separate above the honest control,
+       including gray/congestion class(es): rate_limited_uplink. The naive two-sided rule
+       (naive_top1) sits at chance for gray faults while the directional/relational AUROC
+       does not — the signal is RELATIONAL (faulted link read against its ECMP peers),
+       which is exactly the case for the §11.8 GNN over a hand rule.
+       FLAGGED: impaired_link sits near chance under aggregate hand features. This is a
+       LOWER BOUND, not the ceiling: the MLP/GNN get the full per-endpoint time-series, not
+       these window-aggregate maxes. The learned-model ablation MUST report this class's
+       held-out localization; if the GNN also can't lift it, that is escalated at Gate 13,
+       NOT silently absorbed as a limitation.
+========================================================================
