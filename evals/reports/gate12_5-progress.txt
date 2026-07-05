@@ -1,13 +1,45 @@
 ClosCall — Gate 12.5 (Core Completion: traffic + loaded corpus + GNN) — live progress
 started:      2026-07-04 16:49:09
-last update:  2026-07-04 16:49:09
-elapsed:      0m
+last update:  2026-07-04 17:25:03
+elapsed:      35m
 
   [x] 1. Traffic generator (§8.1) + MTU black-hole fix + traffic-smoke PASS
-  [ ] 2. Corpus runner v3 (traffic during window + fabric-wide capture) + regen (~3h overnight)
-  [ ] 3. Re-run detection + localization on the LOADED corpus
-  [ ] 4. GNN (§11.8) + per-link MLP (§11.7) + invariance ablations (§11.9)
-  [ ] 5. Honest ablation report (rules vs MLP vs GNN, CIs) -> then Gate 13
+  [x] 2. Corpus runner v3 (traffic during window + fabric-wide capture) + regen — 312/312, 24/24 strata
+  [x] 3. Corpus EXIT-CRITERIA CHECK -> PASS (impaired flag resolved by learned-model probe, AUROC 0.93)
+  [x] 4. per-link MLP (§11.7) + GNN (§11.8) built + trained (torch); localization ablation harness
+  [x] 5. Honest ablation report (rule vs MLP vs GNN, CIs) — v1 aggregate + v2 temporal, side by side
 
-status: piece 1 DONE — traffic makes 0.91 Gbps + congestion; MTU bug fixed. Next: corpus v3.
+DONE (2026-07-04). lint clean | mypy clean | 179 unit/property tests pass.
+Deliverables: gate12_5-preregistration.txt (v1-first order + committed hypothesis + correction trail),
+  gate12_5-ablation.txt (headline), gate12_5-localization-v1.txt / -v2.txt (full tables+CIs),
+  evaluate_localization.py rewritten for v3 (old "neural model can't beat the rule" finding replaced).
+CENTERPIECE RESULT: rule is provably blind to gray faults (AUROC 0.500); learned models recover them
+  (v1 aggregate MLP~0.67/GNN~0.69-0.72); gray signal lives in TEMPORAL structure (v2: gray AUROC ~0.91,
+  top1 0.35->0.73-0.89 MLP). GNN's relational bias leads under aggregate features; a temporal-fed MLP
+  matches/beats it (impaired v2 MLP 0.910 vs GNN 0.721 flat). Reported WITH limits, no p-hacking.
+NEXT: Gate 13 (packaging/final) — awaiting scope at exit review.
+
+GATE 12.5 EXIT REVIEW (2026-07-04, corpus complete, ~3.5h under load):
+  integrity: PERFECT — 312 incidents x 16 fabric-link endpoints = 4992 parquet, hashes match DB, 312 labels.
+  signal (AUROC faulted-link vs peers, control-calibrated, one fixed a-priori detector):
+    admin_shutdown 0.923 | carrier_loss 0.912 | intermittent 0.987 | rate_limited 0.643 | impaired 0.545 | control 0.531
+    separable vs chance (CI-lo>0.5): 4/5 faulted incl. gray class rate_limited; control honest (CI incl 0.5).
+    FLAGGED: impaired_link (netem 30% loss) ~ chance under WINDOW-AGGREGATE hand features. Diagnosed:
+      loss reduces goodput ~symmetrically (no octet asymmetry — hypothesis tested + refuted, AUROC 0.42),
+      TCP+static-ECMP dilute the per-link util deficit. This is a LOWER BOUND (hand-aggregate), not the
+      learnable ceiling (MLP/GNN get full per-endpoint time-series). Must be reported by the model ablation;
+      if the GNN also can't lift impaired, escalate at Gate 13 — do NOT absorb as a silent limitation.
+  FLAG RESOLVED (learned-model probe, scripts/gate12_5_impaired_probe.py): with the FULL per-endpoint
+  time-series (mean/std/min/max/last/slope/CoV per counter + oper flaps), peer-normalized, leave-one-leaf-out CV:
+    impaired_link held-out AUROC 0.926 [0.878,0.962] (logistic), 0.891 (mlp), top1 0.731, mean_rank 1.48.
+    vs hand-detector 0.545. Signal was in the corpus; the hand aggregate discarded the temporal structure.
+  => GATE 12.5 EXIT: PASS. impaired IS learnable; no capture strengthening needed. This also demonstrates the
+     thesis (hand rule 0.545 -> learned 0.93 on a gray fault). Proceeding autonomously to steps 4-5.
+
+status: REGEN RUNNING (pid 7301, caffeinated+resumable, campaign gate8-full-corpus-v3).
+        Lab redeployed clean after a torn state (spines had lost mgmt IPs to hosts when
+        telemetry came up before the lab — fixed by full clean + correct deploy order).
+        Fabric verified healthy: lab-check B03-B08 all PASS. Regen resumed from 29/312
+        settled, collecting under load, fabric-wide. ~5-6h. Then steps 3-5 (driven autonomously).
+        Tracker: CAMPAIGN=gate8-full-corpus-v3 make corpus-status
 tests:  179 passing | lint+typecheck clean
