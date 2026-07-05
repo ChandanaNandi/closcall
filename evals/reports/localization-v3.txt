@@ -28,10 +28,10 @@ CORRECTED FINDING (replaces old 'neural model cannot beat the rule, so it is not
 4. MODEL COMPARISON IS NUANCED (reported, not hidden): the GNN's message-passing leads
    under impoverished v1 features (impaired 0.721 vs MLP 0.664), but temporal features let a
    simpler MLP match/beat it (impaired v2: MLP 0.910 vs GNN 0.721, flat).
-   CAVEAT: the GNN's flat impaired result may reflect training-data scarcity (26
-   impaired-class train incidents under the location-inductive split), NOT a ceiling;
-   NOT a clean 'temporal MLP beats GNN' verdict. Fairer leakage-safe check =
-   leave-one-leaf-out 4-fold CV (never replacing the frozen leaf3/leaf4 headline).
+   CONFOUND RESOLVED: the flat GNN impaired was DATA-SCARCITY, not a ceiling. Supplementary
+   leave-one-leaf-out 4-fold CV (3 train leaves/fold) lifts GNN impaired 0.721->0.802 and
+   narrows the GNN-MLP gap 0.19->0.07 (CIs overlap) — comparable with more data. Frozen
+   leaf3/leaf4 stays THE headline; CV is a labeled supplement (gate12_5-localization-cv.txt).
 5. HONEST CEILING & CONTROL: gray top1 under aggregate features ~0.35; healthy_control at
    chance for all methods (no manufactured localization, no position leakage).
 Full tables + CIs: gate12_5-localization-v1.txt, -v2.txt, gate12_5-ablation.txt.

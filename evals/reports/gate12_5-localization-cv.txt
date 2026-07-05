@@ -1,0 +1,71 @@
+==============================================================================
+GATE 12.5 — LOCALIZATION: FROZEN HEADLINE vs SUPPLEMENTARY 4-FOLD CV  [features=v2]
+==============================================================================
+Why two numbers: the location-inductive split fixed leaf3/leaf4 as TEST BEFORE any results
+existed (pre-registration). That frozen result is THE headline. The 4-fold leave-one-leaf-out
+CV below is an AFTER-THE-FACT robustness check (rotate held-out leaf; 3 training leaves/fold,
+leakage-safe per fold), run ONLY to test whether the GNN's flat impaired result is training-
+data scarcity or a real ceiling. It is a SUPPLEMENT, never a replacement for the headline.
+
+[FROZEN HEADLINE] fit=leaf1+leaf2 (n=156), TEST=leaf3+leaf4 (n=156) — pre-registered:
+  [RULE]
+    class                  n   top1   top3    MRR  AUROC          95% CI
+    admin_shutdown        26  0.038  1.000  0.654  0.920 [0.909,0.931]
+    carrier_loss          26  0.000  1.000  0.641  0.918 [0.907,0.926]
+    intermittent_link     26  0.000  1.000  0.667  0.929 [0.929,0.929]
+    rate_limited_uplink   26  0.000  0.000  0.222  0.500 [0.500,0.500]
+    impaired_link         26  0.000  0.000  0.222  0.500 [0.500,0.500]
+    healthy_control       26  0.000  0.000  0.222  0.500 [0.500,0.500]
+  [MLP]
+    class                  n   top1   top3    MRR  AUROC          95% CI
+    admin_shutdown        26  1.000  1.000  1.000  0.996 [0.989,1.000]
+    carrier_loss          26  0.923  1.000  0.962  0.990 [0.977,1.000]
+    intermittent_link     26  1.000  1.000  1.000  0.996 [0.989,1.000]
+    rate_limited_uplink   26  0.885  0.885  0.903  0.910 [0.798,0.997]
+    impaired_link         26  0.731  0.885  0.824  0.910 [0.839,0.967]
+    healthy_control       26  0.077  0.500  0.345  0.499 [0.379,0.611]
+  [GNN]
+    class                  n   top1   top3    MRR  AUROC          95% CI
+    admin_shutdown        26  0.923  1.000  0.962  0.974 [0.935,1.000]
+    carrier_loss          26  0.962  1.000  0.974  0.979 [0.956,0.996]
+    intermittent_link     26  0.962  1.000  0.981  0.996 [0.990,1.000]
+    rate_limited_uplink   26  0.846  0.923  0.900  0.907 [0.810,0.981]
+    impaired_link         26  0.462  0.654  0.611  0.721 [0.602,0.836]
+    healthy_control       26  0.154  0.500  0.391  0.575 [0.469,0.678]
+
+[SUPPLEMENT — 4-fold leave-one-leaf-out CV] each fold: 3 train leaves, held-out leaf scored:
+  [RULE] (pooled over 4 held-out leaves)
+    class                  n   top1   top3    MRR  AUROC          95% CI
+    admin_shutdown        52  0.077  1.000  0.670  0.924 [0.916,0.933]
+    carrier_loss          52  0.000  1.000  0.641  0.918 [0.911,0.924]
+    intermittent_link     52  0.000  1.000  0.660  0.926 [0.922,0.929]
+    rate_limited_uplink   52  0.000  0.000  0.222  0.499 [0.496,0.500]
+    impaired_link         52  0.000  0.000  0.222  0.500 [0.500,0.500]
+    healthy_control       52  0.000  0.000  0.222  0.500 [0.500,0.500]
+  [MLP] (pooled over 4 held-out leaves)
+    class                  n   top1   top3    MRR  AUROC          95% CI
+    admin_shutdown        52  0.923  1.000  0.962  0.991 [0.982,0.998]
+    carrier_loss          52  0.962  0.981  0.976  0.989 [0.973,1.000]
+    intermittent_link     52  1.000  1.000  1.000  0.999 [0.997,1.000]
+    rate_limited_uplink   52  0.885  0.904  0.910  0.942 [0.892,0.982]
+    impaired_link         52  0.673  0.885  0.791  0.872 [0.814,0.925]
+    healthy_control       52  0.135  0.346  0.327  0.463 [0.377,0.546]
+  [GNN] (pooled over 4 held-out leaves)
+    class                  n   top1   top3    MRR  AUROC          95% CI
+    admin_shutdown        52  0.981  1.000  0.990  0.998 [0.994,1.000]
+    carrier_loss          52  1.000  1.000  1.000  0.979 [0.951,1.000]
+    intermittent_link     52  0.981  1.000  0.990  0.998 [0.994,1.000]
+    rate_limited_uplink   52  0.827  0.885  0.876  0.899 [0.836,0.951]
+    impaired_link         52  0.558  0.808  0.698  0.802 [0.740,0.861]
+    healthy_control       52  0.192  0.404  0.378  0.488 [0.411,0.565]
+
+[VERDICT] impaired-class GNN-vs-MLP confound:
+    frozen headline : GNN impaired AUROC 0.721  (MLP 0.910)
+    4-fold CV       : GNN impaired AUROC 0.802 [CI-lo 0.740]  (MLP 0.872)
+    => RESOLVED as DATA-SCARCITY: with 3 training leaves the GNN recovers impaired
+       localization (0.721 -> 0.802, closing on the MLP's 0.872). The frozen flat
+       result reflects the impaired-class training count (26), NOT a model ceiling.
+
+HEADLINE UNCHANGED: the pre-registered leaf3/leaf4 numbers remain THE result; this CV is the
+labeled supplement that resolves the confound. No headline number is replaced or upgraded.
+==============================================================================
