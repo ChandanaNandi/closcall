@@ -4,5 +4,5 @@
 [PASS] immutable plan digest: sha256=85002d0ca8dcbe89
 [PASS] duplicate request -> one job: 2 approve+enqueue requests -> 1 job
 [PASS] isolated executor recovery: execution=succeeded, ethernet-1/1 oper-state=up
-[PASS] recovery via executor, not injector cleanup: recovery passed + audit chain: ['execution.apply', 'incident.open']
+[PASS] recovery via executor, not injector cleanup: recovery passed + audit chain: ['execution.apply', 'execution.apply.intent', 'incident.open']
 == 0 failed ==

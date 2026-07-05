@@ -1,6 +1,6 @@
 # ClosCall — Acceptance and Traceability Matrix
 
-Status: authoritative completion checklist — **AMENDED (A1): scope waivers applied per Master release rule; see Waivers section + docs/decisions/ADR-001-scope-waivers.md**
+Status: authoritative completion checklist — **AMENDED (A1): scope waivers applied per Master release rule; see Waivers section + docs/decisions/ADR-001-scope-waivers.md. AMENDED (A2, Gate 13): H07 downgraded to PARTIAL (full precheck-suite live wiring waived, ADR-004). Gate 13 exit status at the bottom of this file.**
 Rule: a row is green only when the command passes from a clean state and the evidence artifact is
 retained.
 
@@ -106,7 +106,7 @@ retained.
 | H04 | API/workflow cannot obtain device mutation credentials | trust-boundary tests |
 | H05 | Executor has no public ingress | network scan/config test |
 | H06 | Duplicate execution prevented by DB unique constraint + idempotency key (single-executor core) — **[A1] multi-worker leasing / transactional outbox WAIVED to backlog** | concurrency test |
-| H07 | Last path, management interface, stale telemetry, and low headroom fail closed | safety tests |
+| H07 | Last path, management interface, stale telemetry, and low headroom fail closed — **[A2] PARTIAL: full precheck suite `run_prechecks` is built + unit-tested to fail closed; the LIVE `execute_job` path enforces only a narrower subset (approval-digest + allowlist + mgmt-interface). Full-suite live wiring WAIVED to backlog** | safety tests (`tests/unit/test_prechecks.py`); live subset in `executor/execute_job`; ADR-004 |
 | H08 | Pre-state and rollback payload are captured before mutation | execution trace |
 | H09 | Timeout ambiguity becomes outcome unknown and reconciles | failure test |
 | H10 | Recovery uses service predicates while fault remains active | recovery report |
@@ -145,9 +145,40 @@ Per the Master release rule (waived rows must be marked, ADR-justified, and READ
 - Justification: docs/decisions/ADR-001-scope-waivers.md. Backlog home: docs/backlog.md.
 - These waivers apply to CORE completion only. Backlog items remain fully specified in documents 03/04 for later hardening; nothing is deleted.
 
+## Waivers under Amendment A2 (Gate 13)
+
+- **H07 (PARTIAL):** the full §13.2 precheck suite (`run_prechecks`) is built and unit-tested to fail
+  closed, but is NOT wired into the live `execute_job` path, which enforces only approval-digest +
+  allowlist + mgmt-interface. Full-suite live wiring — a `Plan` deserializer, five real fact
+  providers (topology-hash, telemetry-freshness, alternate-path, headroom, final-path), and a
+  fail-closed integration test — is WAIVED to backlog. Justification: docs/decisions/ADR-004-h07-precheck-wiring-waiver.md.
+  Rejected the quick stubbed-context wiring as safety theater. Reflected in docs/LIMITATIONS.md.
+
 ## Master release rule
 
 No "complete," "autonomous," "safe," "validated," or measured resume claim may be made until all
 applicable rows are green. Any waived row must be explicitly marked, justified by ADR, and reflected
 as a limitation in the README and report. **[A1] The waivers above satisfy this clause; the README
 limitation entry is mandatory at release.**
+
+## Gate 13 exit status (packaging and handoff)
+
+All applicable rows are green or explicitly waived (A1/A2) with ADR + README/LIMITATIONS reflection.
+Evidence for every row: `docs/TRACEABILITY.md`. The three Gate 13 exit criteria:
+
+- **J06 — clean-clone demo deploy→teardown, no hidden manual repair:** `make demo` runs
+  fabric-validate → clean-start → db-up/migrate → lab-up → lab-check (B03–B08 all pass) →
+  vertical-slice (LIVE: inject admin_shutdown → detect → correlate → diagnose → immutable plan →
+  approval + durable job → **live executor** reverses it → recovery → audit) → reports-v3 →
+  readme-tables → lab-down. Script: `scripts/demo.py`. Executor scope labeled per ADR-004 (narrower
+  H07 subset; no HTTP API server — backlog).
+- **J07 — every README number generated from an immutable run id:** `make readme-tables` generates
+  the README results block + `docs/RESULTS.md` from `gate12_5-dataset-v3.json`
+  (`dd8def51705710fa…`); numbers are parsed from SHA-256-content-bound artifacts, none hand-typed.
+- **J08 — fidelity limitations + negative findings published:** `docs/LIMITATIONS.md` (detection
+  gray blind spot, gray top-1 weak spot, GNN-impaired confound resolution, the corrected v2→v3
+  hollow-corpus finding, refuted octet-asymmetry hypothesis, A1/A2 waivers, runtime/trust bounds).
+
+Release anchor: v3 (`gate12_5-dataset-v3.json`); the v2 anchor (`gate9-dataset.json`) is retained
+immutable. Deliverables: `docs/DATA_CARD.md`, `docs/MODEL_CARD.md`, `runbooks/operator-guide.md`.
+Full `make lint` + `make typecheck` clean; 179 unit/property tests pass.

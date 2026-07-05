@@ -10,6 +10,7 @@
         train-rules train-ts train-gnn evaluate-sensors capture-baseline \
         evaluate-localization emit-manifest qualify-llm workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
+        evaluate-sensors-v3 emit-manifest-v3 reports-v3 readme-tables \
         secret-scan dep-audit sbom render fabric-validate render-validate pki \
         lab-up lab-down
 
@@ -125,8 +126,12 @@ test-contract test-integration test-security test-failure test-e2e \
 db-reset-test \
 dataset-build \
 dataset-verify train-rules train-ts train-gnn workflow-run \
-api-up executor-up evaluate-agent evaluate-e2e nika demo:
+api-up executor-up evaluate-agent evaluate-e2e nika:
 	@$(NOT_READY)
+
+# --- Gate 13: clean-clone demo (J06) — deploy → diagnose → remediate (live executor) → teardown ---
+demo:
+	uv run python scripts/demo.py
 
 # --- Gate 9: detection evaluation (classical ensemble; read-only over the finished corpus) ---
 evaluate-sensors:
@@ -150,3 +155,17 @@ qualify-llm:
 # --- Gate 12: consolidated evaluation report (anchored to the immutable §9.4 run id) ---
 reports:
 	uv run python scripts/consolidate_eval.py
+
+# --- Gate 12.5/13: v3 under-load release anchor (separate immutable lineage; v2 targets untouched) ---
+evaluate-sensors-v3:
+	uv run python scripts/evaluate_sensors_v3.py
+
+emit-manifest-v3:
+	uv run python scripts/emit_manifest_v3.py
+
+reports-v3:
+	uv run python scripts/consolidate_eval_v3.py
+
+# --- Gate 13: generate README results block + docs/RESULTS.md from the immutable v3 run id (J07) ---
+readme-tables:
+	uv run python scripts/gen_readme_tables.py

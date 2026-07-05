@@ -1,0 +1,18 @@
+ClosCall — detection evaluation (classical ensemble) — v3 UNDER-LOAD corpus
+corpus=gate8-full-corpus-v3 (traffic during every incident window; SAME method as v2, new benchmark version §16). v2 result (gate9-detection.txt) stays immutable.
+frozen config (fit on TRAIN+VALIDATION): ewma_z=3.0 cusum_h=4.0 fsm_persistence=2 horizon_s=60.0
+CIs: 95% incident-clustered bootstrap, n=2000, seed=1337 (§10.4)
+detection unit: the incident's own designated interface (target_json), truncated to a common 25s window (§10.3 leakage guard, R28).
+
+[train] recall=0.60 [0.48,0.72] precision=1.00 [1.00,1.00] F1=0.75 [0.65,0.84] FP/healthy=0.00 [0.00,0.00] latency(med/p90)=15/25s [39/65 faults, 0/13 healthy fired]
+[validation] recall=0.60 [0.48,0.72] precision=1.00 [1.00,1.00] F1=0.75 [0.65,0.84] FP/healthy=0.00 [0.00,0.00] latency(med/p90)=5/20s [39/65 faults, 0/13 healthy fired]
+[test] recall=0.60 [0.52,0.69] precision=1.00 [1.00,1.00] F1=0.75 [0.68,0.81] FP/healthy=0.00 [0.00,0.00] latency(med/p90)=5/20s [78/130 faults, 0/26 healthy fired]
+
+per-class recall (all splits):
+  admin_shutdown       52/52  (blunt)
+  carrier_loss         52/52  (blunt)
+  impaired_link         0/52  (gray)
+  intermittent_link    52/52  (blunt)
+  rate_limited_uplink   0/52  (gray)
+
+COMPARISON TO v2 (gate9-detection.txt): v2 was traffic-free and gray faults produced no device-counter signal (0/52, R23 blind spot). This run tests whether traffic load makes the gray tc-faults detectable by the same classical ensemble.

@@ -1,0 +1,39 @@
+{
+  "code_revision": "8dd27542a42426ace439af0c3a9fd1e34fde1c2e",
+  "config_hash": "866969f36c7c465ea7bb8b349a061c2a97605457f49ce4d96edbbe348668c4dc",
+  "content_hashes": {
+    "corpus_windows_rollup": "fdf73abef8697ecce9b51d07541d98eaf513006ccf82a30e7403084ee2242fdd(4992 windows)",
+    "gate12_5-ablation.txt": "70b10a2b5a7842e557ae07347ee89960e16298bdc57ae8ae0185189b8cb07002",
+    "gate12_5-detection-v3.txt": "f0a7e23280091b634f040f3b5dfba040af2749b4595b67ec1795b75a43cb51b2",
+    "gate12_5-localization-cv.txt": "5f7efd69d2bcd770e0633bc712bc6edbdbf7d0e7b8758b57f376d882be0f3c3c",
+    "gate12_5-localization-v1.txt": "acecd9e361fab40a2fdcf5f49c2905159a58294267586bb39d20ff8fa4061272",
+    "gate12_5-localization-v2.txt": "cf6b57529728e08d5b2d3a2fdeae970e6555467dcba386d976388372ea25f35d",
+    "localization-v3.txt": "ba5a051776ce0eec88e5b0c4377cc129fa6a0ec51228eecbec20d9acba0f3029"
+  },
+  "creation_command": "make corpus (v3, under load, fabric-wide) -> make evaluate-sensors-v3 -> make evaluate-localization -> uv run python scripts/emit_manifest_v3.py",
+  "dataset_kind": "gate12_5-corpus-v3",
+  "dependency_lock_hash": "db2d2508ed4fbfa56edf9a3972eaffe2cde51c1d326ad90e46d3d54a7a4185f8",
+  "exclusions": [
+    "07b5f13b-badf-4e78-ac71-e20a55b343e7",
+    "2b2c18de-77c2-429e-af6a-ab6293e4a252"
+  ],
+  "feature_schema_hash": "35f6e540b9928d525c4d3d9266e3a5d0a5c0f4c25a6e448ae1811d0d6caaad7a",
+  "graph_schema_hash": "5f3c24c11b58b8f59bfd0e01b511fa4f7f6cee1bb38904799eb2679593f65b66",
+  "image_digests": {
+    "gnmic": "sha256:9538f93a9a85e996d0ad5f7c523835e874557be84b8d279c2a51d2f092b24c7e",
+    "postgres": "sha256:ad2e18408bf447f62092a8a5259e7df10505c5a0360bd1a1853ac8b8b0763da2",
+    "prometheus": "sha256:76947e7ef22f8a698fc638f706685909be425dbe09bd7a2cd7aca849f79b5f64",
+    "srlinux": "sha256:f711ddadbca870996793ac9bb3fccb950aa2c6a906da64a304c5274a2c2dceee"
+  },
+  "manifest_hash": "dd8def51705710fa4de39cfed1a22d49929c9916ae51114ffd91feb0f2975e98",
+  "master_seed": 1337,
+  "seeds": {
+    "master": 1337
+  },
+  "source_run_ids": [
+    "gate8-full-corpus-v3"
+  ],
+  "split_manifest_hash": "bd3070efaf4684f766f9e4a5997753bd3072d6f2c3ee1edf0ca6808dabc1860d",
+  "split_protocol": "location-inductive",
+  "topology_hash": "1f9ea4a7da6f6e9a2faf690356fa5cabc761237a0a6c06f716831885362d34c2"
+}

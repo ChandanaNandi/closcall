@@ -1,6 +1,28 @@
 # ClosCall — Project Home
 ### Evidence-grounded incident command for AI datacenter fabrics.
 
+<!-- BEGIN GENERATED: results (make readme-tables) -->
+## Results (v3 under-load anchor)
+
+*Generated from immutable run id `dd8def51705710fa...` (`gate8-full-corpus-v3`, code `8dd27542a424`). Regenerate:
+`make readme-tables`. Full tables: [`docs/RESULTS.md`](docs/RESULTS.md).*
+
+**Thesis, on real under-load data:** classical single-interface detection is blind to *gray* faults;
+relational/temporal learned *localization* recovers them.
+
+| study | result |
+|---|---|
+| Detection (test, classical ensemble) | recall **0.60** (78/130 faults) - blunt only; gray = 0 (structural blind spot, even under load) |
+| Localization AUROC, `rate_limited_uplink` | rule 0.500 -> MLP 0.910 / GNN 0.907 |
+| Localization AUROC, `impaired_link` | rule 0.500 -> MLP 0.910 / GNN 0.721 |
+| Localization AUROC, blunt faults | rule ~0.92 -> learned ~0.94-0.996 |
+
+Gray-fault localization is recovered from throughput instability (temporal) + cross-link comparison
+- structure a single-interface detector cannot use. Honest limits (gray top-1, healthy control at
+chance) are in [`docs/RESULTS.md`](docs/RESULTS.md).
+<!-- END GENERATED: results -->
+
+
 ## Document canon (precedence on conflict — highest wins)
 1. `planning/05-Acceptance-Matrix.md` — what "done" measurably means (AMENDED A1: waivers marked in-document per its Master release rule)
 2. `planning/04-Data-API-and-State-Contracts.md` — schemas, APIs, and core state machines
@@ -29,13 +51,22 @@ date; all reported statistics are statistics of that SHA. "Fetched from main" is
 same-day fetches of NIKA's main returned conflicting statistics during planning — the SHA rule exists
 because of that incident.
 
-## Release limitations queue (for acceptance row J08)
-These are known limitations to be written into the release README's limitations section at J08.
-Appended as build reality establishes them; not a planning-document rewrite.
-- Runtime isolation relies on the Docker Desktop VM boundary plus emptied host file-sharing, not a
-  dedicated hypervisor VM; documented residual risk (see `docs/decisions/ADR-002-lab-runtime-boundary.md`).
-- Core does not defend against a same-host human/privileged attacker; loopback binding is the only
-  claimed network control (threat-model assumption A1, `docs/threat-model.md`).
+## Release limitations and negative findings (acceptance row J08 — PUBLISHED)
+The full ledger is **[`docs/LIMITATIONS.md`](docs/LIMITATIONS.md)** (scientific limits, negative and
+corrected findings, A1/A2 scope waivers, runtime/trust boundaries). Headlines:
+- Detection is structurally blind to *gray* faults even under load; learned localization recovers
+  them (the thesis). Gray exact-link top-1 is the honest weak spot; healthy control at chance.
+- Live remediation enforces a narrower safety subset than the full precheck suite (H07 PARTIAL,
+  ADR-004); executor demoed via the deterministic slice, no live HTTP API server (backlog).
+- Runtime isolation relies on the Docker Desktop VM boundary, not a dedicated hypervisor VM
+  (`docs/decisions/ADR-002-lab-runtime-boundary.md`); no defense against a same-host privileged
+  attacker (threat-model assumption A1, `docs/threat-model.md`).
+- A1 scope waivers (approval expiry/revocation, executor leasing/outbox, token rotation/rate limits,
+  audit hash chain, full restart matrix, backup/restore) — `docs/decisions/ADR-001-scope-waivers.md`.
+
+Evidence index for every acceptance row: **[`docs/TRACEABILITY.md`](docs/TRACEABILITY.md)**.
+Operator runbook: **[`runbooks/operator-guide.md`](runbooks/operator-guide.md)**.
+Data/model cards: **[`docs/DATA_CARD.md`](docs/DATA_CARD.md)**, **[`docs/MODEL_CARD.md`](docs/MODEL_CARD.md)**.
 
 ## Rules of this folder
 1. Planning is CLOSED. Documents change only via ADR-style corrections when build reality contradicts them.

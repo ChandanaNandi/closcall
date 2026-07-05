@@ -31,6 +31,7 @@ from closcall.db.models import (  # noqa: E402
     Execution,
     ExecutionJob,
     Incident,
+    IncidentEvent,
     IncidentSignal,
     RecoveryCheck,
     RemediationVersion,
@@ -79,7 +80,12 @@ class FabricDevice:
 
     def set_admin_state(self, node: str, interface: str, value: str) -> None:
         srl_val = "enable" if value == "enable" else "disable"
-        script = f"enter candidate\nset / interface {interface} admin-state {srl_val}\ncommit now\n"
+        # discard first: the SR Linux shared candidate persists across sessions, so a prior tool
+        # (e.g. lab-check's B05 policy probe) can leave it dirty and make `commit now` fail.
+        script = (
+            "enter candidate\ndiscard stay\n"
+            f"set / interface {interface} admin-state {srl_val}\ncommit now\n"
+        )
         subprocess.run(
             ["docker", "exec", "-i", "-u", "root", f"clab-closcall-2s4l-{node}", "sr_cli"],
             input=script,
@@ -90,9 +96,14 @@ class FabricDevice:
 
 
 def inject_admin_shutdown() -> None:
+    # discard first (see set_admin_state): a dirty shared candidate from a prior tool would
+    # otherwise make this commit fail and the fault would silently never activate.
     subprocess.run(
         ["docker", "exec", "-i", "-u", "root", CLABN, "sr_cli"],
-        input=f"enter candidate\nset / interface {IFACE_SRL} admin-state disable\ncommit now\n",
+        input=(
+            "enter candidate\ndiscard stay\n"
+            f"set / interface {IFACE_SRL} admin-state disable\ncommit now\n"
+        ),
         capture_output=True,
         text=True,
         timeout=30,
@@ -113,15 +124,24 @@ async def run() -> int:
             ApprovalDecision,
             RemediationVersion,
             IncidentSignal,
+            IncidentEvent,  # FK-references incidents; must be cleared before Incident (idempotency)
         ):
             await s.execute(m.__table__.delete())
         await s.execute(Incident.__table__.delete())
         await s.commit()
 
     # 1. inject the fault (admin_shutdown); it stays ACTIVE — injector clear() is never called.
-    inject_admin_shutdown()
-    await asyncio.sleep(3)
-    down = dev.get_oper_state(NODE, IFACE_SRL)
+    # Re-assert + verify rather than trust one commit: on a freshly-converged node the first commit
+    # can be accepted but not reflect in oper-state, so re-issue the disable every few seconds until
+    # oper-state drops (up to ~25s). Still FAILS honestly if the fault never becomes active.
+    down = "up"
+    for i in range(25):
+        if i % 5 == 0:
+            inject_admin_shutdown()
+        await asyncio.sleep(1)
+        down = dev.get_oper_state(NODE, IFACE_SRL)
+        if down == "down":
+            break
     emit(down == "down", "fault active (admin_shutdown)", f"{NODE} {IFACE_SRL} oper-state={down}")
 
     # 2+3. rules detect -> idempotent correlator. Fire the SAME signal 100x -> ONE incident.
