@@ -1,1 +1,1 @@
-corpus 1/312; strata filled 0/24; last batch +1 settled / 0 quarantined
+corpus 312/312; strata filled 24/24; last batch +311 settled / 0 quarantined

@@ -1,0 +1,13 @@
+ClosCall — Gate 11 (secured HITL + executor) — live progress
+started:      2026-07-04 15:14:05
+last update:  2026-07-04 15:39:41
+elapsed:      25m
+
+  [x] 1. Auth core (Argon2id login, JWT HttpOnly/Secure/SameSite cookie)
+  [x] 2. RBAC + IDOR protection + CSRF + API endpoints
+  [x] 3. Immutable plan (§13.1) + 12 mandatory prechecks (§13.2)
+  [x] 4. Executor completion + rollback state machine + audit-write guard
+  [x] 5. Security/execution acceptance tests + exit review
+
+status: GATE 11 COMPLETE — all 5 pieces done, exit criteria met, status note written.
+tests:  174 passing | lint+typecheck clean | 5 commits

@@ -1,6 +1,7 @@
 [PASS] stratum counts met: all 24 cells >= 13/cell
 [PASS] operational floor (§10.1): 312 settled >= 300
 [PASS] artifacts verify: 312/312 label hashes recompute; 312/312 artifacts match
+[PASS] telemetry windows verify (§9.1): 312/312 raw-telemetry windows hash-verify, non-empty, schema-conformant
 [PASS] split invariant (E06): train 4 ∩ test 4 links = ∅; split tags consistent
 [PASS] provenance complete: campaign rev='gate8' seed=1337; all 312 injections carry seeds + simulated=true
 [PASS] quality (observed onset): all 312 settled have device_observed_at; 0 quarantined
