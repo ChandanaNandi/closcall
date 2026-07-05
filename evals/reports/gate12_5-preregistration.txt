@@ -1,0 +1,69 @@
+ClosCall Gate 12.5 — LOCALIZATION ABLATION PRE-REGISTRATION
+committed: 2026-07-04, BEFORE running the ablation or extending any feature contract.
+Purpose: make the feature-contract question un-gameable. Changing a frozen eval contract AFTER
+seeing it is needed to win is the highest integrity risk in the evaluation; this document fixes the
+order and the hypotheses in advance so no result can be dismissed as tuning-to-pass.
+
+CORPUS: gate8-full-corpus-v3 (312 incidents, under load, fabric-wide capture). Integrity verified
+(4992 endpoint windows = 312x16, sha256 match DB, 312 labels). See gate12_5-exit-criteria.txt.
+
+SPLIT (pre-registered, frozen): location-inductive (§10.2). train=leaf1, validation=leaf2,
+test=leaf3+leaf4. Physical-link-disjoint => no location leakage (E06). TEST scored only after freeze.
+
+METRIC: per-incident, rank the true faulted physical link among the 8 fabric-link candidates.
+Report top1, top3, MRR, and AUROC(faulted vs peer), per fault class, with bootstrap 95% CIs.
+Chance top1 = 1/8 = 0.125. Classes: blunt = {admin_shutdown, carrier_loss, intermittent_link};
+gray = {rate_limited_uplink, impaired_link}; plus healthy_control as the negative/calibration class.
+
+MODELS: (a) oper-state rule baseline (the existing strong rule, adapted to v3 under-load capture);
+(b) per-link MLP (§11.7); (c) GNN over the fabric graph (§11.8). Same split, same metric, same seed.
+
+=== STEP 1 — PRIMARY, PRE-REGISTERED RESULT (run first, report regardless of outcome) ===
+Features: FROZEN §9.2 v1 aggregate contract ONLY — util_ratio, error_rate, discard_rate,
+sample_age_s, missingness_mask (preprocessor_hash = gate9-causal-features-v1). Nothing added.
+This is the baseline everything else is measured against. If learned models do NOT beat the rule on
+gray faults under v1, that IS the finding and it is reported as the primary result, not hidden.
+
+=== STEP 2 — PRE-REGISTERED HYPOTHESIS FOR THE TEMPORAL EXTENSION (committed BEFORE the v2 run) ===
+Physics rationale (stated in advance, independent of any result): a degraded link is physically
+characterized by throughput INSTABILITY OVER TIME, not merely a lower mean. Rate-limiting (tbf)
+clips bursts -> altered variance and ceiling; loss (netem) makes TCP saw-tooth -> elevated temporal
+variance and negative/again-recovering slope; intermittent flapping -> transitions. Window-AGGREGATE
+features (a single mean rate over the window) discard exactly this temporal structure. THEREFORE we
+hypothesize that adding strictly-causal TEMPORAL channels — per-step rate std, linear slope, and
+coefficient-of-variation for each counter channel, plus oper transition count — will recover
+gray-fault localization that v1 aggregate features cannot.
+Transparency: an exploratory probe (scripts/gate12_5_impaired_probe.py) already suggested temporal
+features lift impaired_link (held-out AUROC ~0.93 vs 0.545). The v2 run is therefore CONFIRMATORY on
+the official frozen split + metric + causal contract — the physics rationale above, not that number,
+is the justification, and it is committed here before the official v2 run.
+
+=== STEP 3 — REPORTING ===
+Report v1 and v2 SIDE BY SIDE as a feature ablation. Headline finding is the controlled comparison:
+which feature CLASS the gray-fault signal lives in — not any single winning number.
+
+=== STEP 4 — INTEGRITY GUARDS (hold throughout) ===
+- Causality: only samples with event_time <= as_of_at enter any feature (v1 and v2 alike).
+- Versioning (§16): v2 temporal features get a new content-hashed preprocessor version
+  (gate9-causal-features-v2-temporal); v1 hash is unchanged and both are recorded.
+- No selection on TEST: scalers/thresholds/model selection fit on train(leaf1)+validation(leaf2) only.
+- The existing scripts/evaluate_localization.py FINDING (which states, from the old traffic-free v2
+  corpus, that the neural model cannot beat the rule and is not built) is NOT overwritten until BOTH
+  v1 and v2 results exist; it is then replaced with the full quantified two-feature-set story.
+
+=== CORRECTION (appended 2026-07-04, AFTER the v1 run, BEFORE the v2 run — original text above is
+    left intact on purpose; this trail is the integrity record, not an embarrassment) ===
+The Step-2 hypothesis above stated "aggregate features are INSUFFICIENT; temporal features are NEEDED
+to recover gray-fault localization." The v1 run FALSIFIED that wording. Under the FROZEN §9.2
+aggregate contract + the pre-registered location-inductive split (test=leaf3/4), the learned models
+already recover gray localization the oper-state rule cannot:
+    rate_limited_uplink  AUROC  rule 0.500 | MLP 0.683 [.54,.81] | GNN 0.690 [.59,.80]
+    impaired_link        AUROC  rule 0.500 | MLP 0.664 [.55,.77] | GNN 0.721 [.63,.82]
+    (blunt: all methods 0.92-0.97; healthy_control ~0.50 for all — no manufactured localization.)
+Aggregate features are therefore PARTIALLY SUFFICIENT, not insufficient. The physics rationale for
+the temporal channels (a degraded link is characterized by throughput INSTABILITY over time) is
+UNCHANGED and still committed; only the claimed strength is corrected. The v2 question is now
+NARROWED and cleaner: does temporal structure add LIFT on top of aggregate features — especially for
+the still-weak gray exact-link top-1 (~0.35)? Either outcome is reported: lift, or "aggregate
+features already capture most of the recoverable gray signal." v1 and v2 run as a controlled
+feature ablation (same models, same split, same seed; only the feature set changes).
