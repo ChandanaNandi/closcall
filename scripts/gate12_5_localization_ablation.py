@@ -285,6 +285,69 @@ def per_class(rows, emit):
     return out
 
 
+def rule_score_fn(fabric_links):
+    """oper-state rule: link suspicious if either endpoint is oper-down. No fitting."""
+
+    def score(inc):
+        return {
+            lid: (1.0 if (inc["node_down"][a] or inc["node_down"][b]) else 0.0)
+            for lid, (a, b) in fabric_links.items()
+        }
+
+    return score
+
+
+def fit_mlp(fit, fabric_links):
+    """per-link MLP (§11.7): v-features raw + within-incident relative. Returns a score_fn."""
+    Xtr = np.vstack([link_row(c, fabric_links, relative=True)[0] for c in fit])
+    ytr = np.concatenate([link_row(c, fabric_links, relative=True)[1] for c in fit])
+    scaler = StandardScaler().fit(Xtr)
+    mlp = MLPClassifier(hidden_layer_sizes=(64, 32), alpha=1e-2, max_iter=2000, random_state=0)
+    mlp.fit(scaler.transform(Xtr), ytr)
+
+    def score(inc):
+        X, _, lids = link_row(inc, fabric_links, relative=True)
+        p = mlp.predict_proba(scaler.transform(X))[:, 1]
+        return dict(zip(lids, p, strict=True))
+
+    return score
+
+
+def fit_gnn(fit, node_ids, nidx, fabric_links, edge_index, dim):
+    """GNN (§11.8): per-interface features + fabric-graph message passing. Returns a score_fn."""
+    all_feat = np.vstack([list(c["node_feat"].values()) for c in fit])
+    gs = StandardScaler().fit(all_feat)
+    link_pairs = [(nidx[a], nidx[b]) for a, b in fabric_links.values()]
+    lids_order = list(fabric_links)
+
+    def to_x(inc):
+        return torch.tensor(
+            gs.transform(np.array([inc["node_feat"][n] for n in node_ids])), dtype=torch.float32
+        )
+
+    gnn = GNN(dim)
+    opt = torch.optim.Adam(gnn.parameters(), lr=1e-2, weight_decay=1e-3)
+    lossf = nn.BCEWithLogitsLoss()
+    gnn.train()
+    for _ep in range(120):
+        opt.zero_grad()
+        losses = []
+        for inc in fit:
+            logits = gnn(to_x(inc), edge_index, link_pairs)
+            y = torch.tensor([1.0 if lid == inc["tlid"] else 0.0 for lid in lids_order])
+            losses.append(lossf(logits, y))
+        torch.stack(losses).mean().backward()
+        opt.step()
+    gnn.eval()
+
+    def score(inc):
+        with torch.no_grad():
+            logits = gnn(to_x(inc), edge_index, link_pairs)
+        return dict(zip(lids_order, logits.tolist(), strict=True))
+
+    return score
+
+
 async def run_ablation(version: str = "v1") -> dict:
     global VERSION
     VERSION = version
@@ -312,63 +375,18 @@ async def run_ablation(version: str = "v1") -> dict:
     emit("")
 
     # ---- 1. RULE: oper-state (either endpoint down in window) ----
-    def rule_score(inc):
-        return {
-            lid: (1.0 if (inc["node_down"][a] or inc["node_down"][b]) else 0.0)
-            for lid, (a, b) in fabric_links.items()
-        }
-
     emit("[RULE] oper-state (link down if either endpoint oper-down in window):")
-    rule_out = per_class(eval_ranks(rule_score, test), emit)
+    rule_out = per_class(eval_ranks(rule_score_fn(fabric_links), test), emit)
     emit("")
 
-    # ---- 2. per-link MLP (§11.7): per-link v1 features + within-incident relative ----
-    Xtr = np.vstack([link_row(c, fabric_links, relative=True)[0] for c in fit])
-    ytr = np.concatenate([link_row(c, fabric_links, relative=True)[1] for c in fit])
-    scaler = StandardScaler().fit(Xtr)
-    mlp = MLPClassifier(hidden_layer_sizes=(64, 32), alpha=1e-2, max_iter=2000, random_state=0)
-    mlp.fit(scaler.transform(Xtr), ytr)
-
-    def mlp_score(inc):
-        X, _, lids = link_row(inc, fabric_links, relative=True)
-        p = mlp.predict_proba(scaler.transform(X))[:, 1]
-        return dict(zip(lids, p, strict=True))
-
+    # ---- 2. per-link MLP (§11.7): per-link v-features + within-incident relative ----
+    mlp_score = fit_mlp(fit, fabric_links)
     emit("[MLP §11.7] per-link, v-features (raw + within-incident relative), no graph:")
     mlp_out = per_class(eval_ranks(mlp_score, test), emit)
     emit("")
 
     # ---- 3. GNN (§11.8): per-interface node features + fabric graph, learns relational compare --
-    all_feat = np.vstack([list(c["node_feat"].values()) for c in fit])
-    gs = StandardScaler().fit(all_feat)
-    link_pairs = [(nidx[a], nidx[b]) for a, b in fabric_links.values()]
-    lids_order = list(fabric_links)
-
-    def to_x(inc):
-        return torch.tensor(
-            gs.transform(np.array([inc["node_feat"][n] for n in node_ids])), dtype=torch.float32
-        )
-
-    gnn = GNN(dim)
-    opt = torch.optim.Adam(gnn.parameters(), lr=1e-2, weight_decay=1e-3)
-    lossf = nn.BCEWithLogitsLoss()
-    gnn.train()
-    for _ep in range(120):
-        opt.zero_grad()
-        losses = []
-        for inc in fit:
-            logits = gnn(to_x(inc), edge_index, link_pairs)
-            y = torch.tensor([1.0 if lid == inc["tlid"] else 0.0 for lid in lids_order])
-            losses.append(lossf(logits, y))
-        torch.stack(losses).mean().backward()
-        opt.step()
-    gnn.eval()
-
-    def gnn_score(inc):
-        with torch.no_grad():
-            logits = gnn(to_x(inc), edge_index, link_pairs)
-        return dict(zip(lids_order, logits.tolist(), strict=True))
-
+    gnn_score = fit_gnn(fit, node_ids, nidx, fabric_links, edge_index, dim)
     emit("[GNN §11.8] per-interface v-features + fabric graph message passing:")
     gnn_out = per_class(eval_ranks(gnn_score, test), emit)
     emit("")
