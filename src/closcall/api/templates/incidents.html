@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Incidents — ClosCall{% endblock %}
+{% block who %}{{ me.user_id }} · {{ me.role }}{% endblock %}
+{% block body %}
+<h2>Open incidents</h2>
+{% if not incidents %}
+  <div class="card muted">No incidents. Run the vertical slice / demo to open one.</div>
+{% else %}
+<div class="card" style="padding:0;">
+<table>
+  <thead><tr><th>Incident</th><th>Severity</th><th>Status</th><th>Localized link</th><th>Opened</th></tr></thead>
+  <tbody>
+  {% for i in incidents %}
+    <tr>
+      <td><a href="/ui/incidents/{{ i.id }}">{{ i.incident_key }}</a></td>
+      <td><span class="pill">{{ i.severity }}</span></td>
+      <td>{{ i.status }}</td>
+      <td>{% if i.localized_link %}<code>{{ i.localized_link }}</code>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td class="muted">{{ i.opened_at[:19] }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

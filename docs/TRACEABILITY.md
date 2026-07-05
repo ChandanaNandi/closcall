@@ -85,7 +85,8 @@ the `BEGIN/END GENERATED` block).
 | row | evidence |
 |---|---|
 | I01 TLS + separate read/write identities | lab PKI `make pki`, `scripts/gen_pki.py` |
-| I02 JWT/RBAC/IDOR/secure-cookie/CSRF **[WAIVED: rotation/rate-limit]** | `test_auth`, `test_api`; `api/auth.py`, `api/app.py` |
+| I02 JWT/RBAC/IDOR/secure-cookie/CSRF **[WAIVED: rotation/rate-limit]** | `test_auth`, `test_api`; `api/auth.py`, `api/app.py`; browser UI reuses it (`test_ui`, ADR-005) |
+| **Gate 14 HITL UI — face on the gated flow, no side door** | `make api-up`/`api-smoke`; `api/ui.py` + templates (sticky H07 banner); `test_ui.py` incl. `test_side_door_tampered_digest_refused_and_no_mutation`; shared gate `executor/binding.py` |
 | I02a UI loopback-HTTPS only; no Secure cookie over HTTP | session cookie `Secure=True`; `docs/threat-model.md` |
 | I03 no secret in source/logs/artifacts | `make secret-scan` (gitleaks); `.env`/PKI gitignored |
 | I04 least-privilege containers + pinned digests | `make sbom`, `make dep-audit`; `compose.yaml`; image digests |

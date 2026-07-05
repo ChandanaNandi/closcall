@@ -21,6 +21,10 @@ dependencies = [
     "fastapi>=0.139.0",
     "argon2-cffi>=25.1.0",
     "pyjwt>=2.13.0",
+    # Gate 14 browser UI (Bible-scoped lightweight: server-rendered, no SPA).
+    "jinja2>=3.1",
+    "uvicorn>=0.30",
+    "python-multipart>=0.0.9",  # form posts for the login/approve views
     "numpy>=2.5.1",
     "scikit-learn>=1.9.0",
     "torch>=2.12.1",

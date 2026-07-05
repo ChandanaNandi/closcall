@@ -27,6 +27,7 @@ from closcall.db.models import (
     RemediationVersion,
 )
 from closcall.executor.audit_guard import AuditUnavailable
+from closcall.executor.binding import approval_authorizes_plan
 
 ALLOWED_ACTIONS = {"set_admin_state"}
 ALLOWED_VALUES = {"enable"}
@@ -42,18 +43,27 @@ class PrecheckError(Exception):
 
 
 async def _precheck(session: AsyncSession, rv: RemediationVersion) -> dict:  # type: ignore[type-arg]
-    # valid approval for the exact digest/version (§13.2)
+    # valid approval bound to the EXACT plan digest (§13.2). Fetch an approve decision for this
+    # remediation and validate the binding via the shared gate — the identical predicate the UI
+    # approve path uses, so neither can execute a plan whose digest was not approved.
     appr = (
-        await session.execute(
-            select(ApprovalDecision).where(
-                ApprovalDecision.remediation_version_id == rv.id,
-                ApprovalDecision.plan_digest == rv.plan_digest,
-                ApprovalDecision.decision == "approve",
+        (
+            await session.execute(
+                select(ApprovalDecision)
+                .where(
+                    ApprovalDecision.remediation_version_id == rv.id,
+                    ApprovalDecision.decision == "approve",
+                )
+                .order_by(ApprovalDecision.created_at.desc())
             )
         )
-    ).scalar_one_or_none()
-    if appr is None:
-        raise PrecheckError("no valid approval for this plan digest")
+        .scalars()
+        .first()
+    )
+    if appr is None or not approval_authorizes_plan(
+        decision=appr.decision, approval_digest=appr.plan_digest, plan_digest=rv.plan_digest
+    ):
+        raise PrecheckError("no valid approval bound to this exact plan digest")
     plan = rv.plan_json
     if plan.get("action") not in ALLOWED_ACTIONS or plan.get("value") not in ALLOWED_VALUES:
         raise PrecheckError(

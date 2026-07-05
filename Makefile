@@ -11,6 +11,7 @@
         evaluate-localization emit-manifest qualify-llm workflow-run api-up \
         executor-up evaluate-agent evaluate-e2e nika demo reports \
         evaluate-sensors-v3 emit-manifest-v3 reports-v3 readme-tables \
+        api-seed api-up api-smoke demo-ui \
         secret-scan dep-audit sbom render fabric-validate render-validate pki \
         lab-up lab-down
 
@@ -126,8 +127,22 @@ test-contract test-integration test-security test-failure test-e2e \
 db-reset-test \
 dataset-build \
 dataset-verify train-rules train-ts train-gnn workflow-run \
-api-up executor-up evaluate-agent evaluate-e2e nika:
+executor-up evaluate-agent evaluate-e2e nika:
 	@$(NOT_READY)
+
+# --- Gate 14: HITL browser UI (FastAPI + Jinja2 + HTMX; loopback HTTPS, lab PKI) ---
+api-seed:
+	uv run python scripts/api_seed.py
+
+api-up: api-seed
+	uv run python scripts/api_serve.py
+
+api-smoke:
+	uv run python scripts/api_smoke.py
+
+# End-to-end UI demo: bring the lab + an incident up, then serve the UI (Ctrl-C to stop, then lab-down).
+demo-ui: api-seed
+	uv run python scripts/api_serve.py
 
 # --- Gate 13: clean-clone demo (J06) — deploy → diagnose → remediate (live executor) → teardown ---
 demo:

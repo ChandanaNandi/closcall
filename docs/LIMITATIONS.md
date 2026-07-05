@@ -104,6 +104,20 @@ claim implies these properties.
 | Backup / point-in-time-recovery + restore drills (J04) | (none — pure hardening item) |
 | **H07 full precheck suite wired to live execution (A2, ADR-004)** | Live `execute_job` enforces approval-digest + allowlist + mgmt-interface |
 
+### 3.0 Gate 14 browser UI — honest labeling carried into the face (D1 + H07)
+The HITL approval UI (`make api-up`) is a face on the existing gated flow, not a new execution path:
+the approve action drives the same `execute_job` via the shared approval↔digest binding gate
+(`executor.binding.approval_authorizes_plan`), proven by the no-side-door test
+(`tests/unit/test_ui.py::test_side_door_tampered_digest_refused_and_no_mutation`). Two honest labels
+render **in the UI itself**, not a footer:
+- **H07** (ADR-004): a sticky banner directly above the approve button on every case file states the
+  live path enforces only approval-binding + allowlist + mgmt-interface, and that the full fail-closed
+  suite (last-path/headroom/stale-telemetry/drift) is NOT wired to live execution.
+- **D1**: the demo executor runs synchronously in-process; production would use the durable job queue
+  (backlogged). Stated at server start and in the operator guide — the convenience does not imply an
+  architecture that isn't there.
+Auth is transport-only reused from Gate 11 (httpOnly JWT cookie, ADR-005); no new auth.
+
 ### 3.1 H07 — live remediation enforces a narrower safety subset than the full suite (Amendment A2)
 The live device-mutation path (`executor.execute_job`) enforces **approval-binding to the exact plan
 digest/version, the action/value allowlist, and the management-interface guard**. The fuller

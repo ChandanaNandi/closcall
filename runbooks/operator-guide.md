@@ -364,7 +364,23 @@ that stands up the live API + executor against a real device today (see §4/§5 
    describe `viewer`/`approver`/`auditor`/`admin` and an approve/reject-by-digest route; that
    HTTP route is not present in `app.py`. Approval binding is enforced at the executor precheck
    via the `ApprovalDecision` row, not (yet) via a dedicated API endpoint.
-3. **No runnable live HITL service.** `api-up`/`executor-up`/`demo` are `NOT_READY`, so the
-   flow in §4-§5 could be confirmed only at the library/unit-test level
-   (`tests/unit/test_prechecks.py`, `tests/unit/test_rollback_audit.py`, `tests/unit/test_api.py`);
-   `tests/integration`, `tests/security`, and `tests/failure` are currently empty.
+3. **Live HITL surface (Gate 14 update).** `demo`, `api-up`, `api-seed`, `api-smoke` now run; the
+   browser approval UI is live (see §8). `executor-up` remains `NOT_READY` (the UI runs the executor
+   in-process, D1). `tests/integration|security|failure` are still empty — the UI is covered by
+   `tests/unit/test_ui.py` (incl. the no-side-door test) and the clean-clone `make api-smoke`.
+
+## 8. Approving via the browser UI (Gate 14)
+
+- `make api-up` seeds login users and serves the HITL UI on **loopback HTTPS** (lab PKI) at
+  `https://127.0.0.1:8443/ui/login`. Users: `viewer1` / `operator1` / `approver1`, password
+  `CLOSCALL_SEED_PASSWORD` (default `closcall-demo`). Accept the self-signed lab cert.
+- Flow: incident list → case file (evidence, localized link, drafted plan + digest) → **Approve /
+  Edit / Reject** (approver role only). Approve drives the SAME `execute_job` as the vertical slice.
+- **Honest labels shown in the UI itself:** a sticky banner directly above the approve button states
+  the live executor enforces only approval-binding + allowlist + mgmt-interface, and that the full
+  fail-closed suite is not wired to the live path (H07 / ADR-004). Server start prints the D1 note
+  (in-process executor; production would use the durable job queue — backlogged).
+- **No side door:** the approve action re-runs the approval↔digest binding and refuses a mismatched
+  or absent approval (`tests/unit/test_ui.py::test_side_door_tampered_digest_refused_and_no_mutation`).
+- `make api-smoke` proves the whole flow clean-clone (login → list → case file → approve) with a fake
+  device, no live lab. Auth is the Gate 11 JWT carried in an httpOnly cookie (transport-only, ADR-005).

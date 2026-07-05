@@ -269,7 +269,20 @@ CHECK_JOB_STATUS = CheckConstraint(
 )
 
 
+class AppUser(Base):
+    """UI/API login identity (Gate 14). Distinct from PostgreSQL runtime DB roles — this is an
+    application user with a role claim (viewer|operator|approver) and an Argon2id password hash."""
+
+    __tablename__ = "app_users"
+    __table_args__ = ({"schema": "core"},)
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    role: Mapped[str] = mapped_column(String(16))  # viewer|operator|approver
+    password_hash: Mapped[str] = mapped_column(String(256))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 __all__ = [
+    "AppUser",
     "ApprovalDecision",
     "Artifact",
     "AuditEvent",

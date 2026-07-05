@@ -57,7 +57,9 @@ class LoginBody(BaseModel):
     password: str
 
 
-def create_app(*, secret: str, users: UserStore, repo: Repo) -> FastAPI:
+def create_app(
+    *, secret: str, users: UserStore, repo: Repo, ui_repo: object | None = None
+) -> FastAPI:
     app = FastAPI(title="ClosCall HITL")
 
     def principal(request: Request) -> Principal:
@@ -128,6 +130,11 @@ def create_app(*, secret: str, users: UserStore, repo: Repo) -> FastAPI:
     ) -> dict[str, str]:
         inc = _authorized_incident(incident_id, p)
         return {"acked": inc.id}
+
+    if ui_repo is not None:
+        from closcall.api.ui import mount_ui
+
+        mount_ui(app, ui_repo=ui_repo, principal_dep=principal, require=require, csrf=csrf)  # type: ignore[arg-type]
 
     return app
 

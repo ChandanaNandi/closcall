@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ case.incident.incident_key }} — ClosCall{% endblock %}
+{% block who %}{{ me.user_id }} · {{ me.role }}{% endblock %}
+{% block body %}
+<p><a href="/ui/incidents">← incidents</a></p>
+<h2>{{ case.incident.incident_key }}
+  <span class="pill">{{ case.incident.severity }}</span>
+  <span class="pill">{{ case.incident.status }}</span>
+</h2>
+
+<!-- Decision panel first so the approve button + H07 banner sit in the opening viewport. -->
+{% include "_panel.html" %}
+
+<div class="card">
+  <h3 style="margin-top:0;">Diagnosis</h3>
+  <p>Localized link:
+    {% if case.incident.localized_link %}<code>{{ case.incident.localized_link }}</code>{% else %}<span class="muted">—</span>{% endif %}
+    · typed claim (deterministic, no LLM): <strong>{{ case.claim }}</strong>
+  </p>
+  <p class="muted">Evidence: {{ case.evidence }}</p>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Drafted plan</h3>
+  {% if case.plan %}<pre>{{ case.plan.plan_json | tojson(indent=2) }}</pre>
+  <p class="muted">digest {{ case.plan.plan_digest }}</p>
+  {% else %}<p class="muted">none</p>{% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Signals</h3>
+  {% if case.signals %}<ul>{% for s in case.signals %}<li>{{ s.source }} @ {{ s.observed_at }}</li>{% endfor %}</ul>
+  {% else %}<p class="muted">none</p>{% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Audit trail <span class="muted" style="font-size:12px;">(read-only, append-only)</span></h3>
+  {% if case.audit %}<table><thead><tr><th>Actor</th><th>Action</th><th>Entity</th><th>Detail</th></tr></thead>
+  <tbody>{% for a in case.audit %}<tr><td>{{ a.actor_type }}</td><td>{{ a.action }}</td><td>{{ a.entity_type }}</td><td class="muted">{{ a.summary }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="muted">no audit records yet</p>{% endif %}
+</div>
+{% endblock %}
