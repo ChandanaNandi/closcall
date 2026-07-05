@@ -1,6 +1,16 @@
 # ClosCall — Project Home
 ### Evidence-grounded incident command for AI datacenter fabrics.
 
+> **Status — Gate 13 complete (research study closed).** A lab system that detects, localizes, and
+> (with human approval) remediates faults on a datacenter network fabric. **Proven:** learned
+> localization recovers *gray* (subtle, non-hard-down) faults that classical single-interface
+> detection is blind to even under traffic load — rule 0.500 → learned ~0.91 AUROC, anchored to one
+> immutable run (`dd8def51…`, `make reports-v3`). **Explicitly deferred to the hardening backlog:**
+> wiring the full safety-precheck suite into live execution (H07 — live path enforces a narrower
+> subset; see [ADR-004](docs/decisions/ADR-004-h07-precheck-wiring-waiver.md)) and a live HTTP API
+> server (the executor is demoed via the deterministic slice). Full honest ledger:
+> [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md).
+
 <!-- BEGIN GENERATED: results (make readme-tables) -->
 ## Results (v3 under-load anchor)
 
