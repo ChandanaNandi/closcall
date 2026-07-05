@@ -140,8 +140,9 @@ api-up: api-seed
 api-smoke:
 	uv run python scripts/api_smoke.py
 
-# End-to-end UI demo: bring the lab + an incident up, then serve the UI (Ctrl-C to stop, then lab-down).
-demo-ui: api-seed
+# End-to-end UI demo: seed a fresh un-approved incident, then serve the UI (Ctrl-C to stop).
+demo-ui:
+	uv run python scripts/api_demo_seed.py
 	uv run python scripts/api_serve.py
 
 # --- Gate 13: clean-clone demo (J06) — deploy → diagnose → remediate (live executor) → teardown ---
