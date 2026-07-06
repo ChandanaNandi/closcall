@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Journey — ClosCall{% endblock %}
+{% block nav_journey %}active{% endblock %}
+{% block who %}{{ me.user_id }} · {{ me.role }}{% endblock %}
+{% block body %}
+
+<style>
+  .jhero { margin:18px 0 22px; }
+  .jhero h1 { font-size:26px; }
+  .jhero p { max-width:780px; color:var(--ink-secondary); margin:8px 0 0; }
+
+  /* pipeline architecture strip */
+  .pipe { display:flex; flex-wrap:wrap; align-items:stretch; gap:0; margin:18px 0 8px; }
+  .pipe .stage { flex:1 1 110px; min-width:104px; background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:10px 12px; position:relative; margin-right:26px; }
+  .pipe .stage:last-child { margin-right:0; }
+  .pipe .stage::after { content:"→"; position:absolute; right:-21px; top:50%; transform:translateY(-50%);
+    color:var(--ink-muted); font-size:15px; }
+  .pipe .stage:last-child::after { content:""; }
+  .pipe .stage .t { font-size:12.5px; font-weight:650; color:var(--ink-primary); }
+  .pipe .stage .s { font-size:11px; color:var(--ink-muted); margin-top:3px; line-height:1.4; }
+  .pipe .stage .g { font-size:10px; color:var(--ink-muted); margin-top:6px; letter-spacing:0.05em; }
+  .human { border-color:var(--warning) !important; }
+  .human .t::before { content:"👤 "; }
+
+  /* timeline */
+  .legendp { display:flex; gap:18px; flex-wrap:wrap; margin:26px 0 4px; font-size:12px;
+             color:var(--ink-secondary); }
+  .tl { position:relative; margin:14px 0 0; padding-left:34px; }
+  .tl::before { content:""; position:absolute; left:11px; top:6px; bottom:6px; width:2px;
+                background:var(--grid); border-radius:1px; }
+  .gate { position:relative; margin:0 0 14px; }
+  .gate .node { position:absolute; left:-34px; top:14px; width:24px; height:24px; border-radius:50%;
+    background:var(--surface); border:2.5px solid var(--pc); color:var(--ink-primary);
+    font-size:9.5px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .gate .card { border-left:3px solid var(--pc); }
+  .gate h3 { font-size:14.5px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .gate h3 .ph { font-size:10.5px; font-weight:600; color:var(--pc); letter-spacing:0.06em;
+                 text-transform:uppercase; }
+  .gate p { margin:6px 0 0; font-size:13px; color:var(--ink-secondary); }
+  .ev { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .ev code { font-size:11px; }
+</style>
+
+<div class="jhero">
+  <h1>How this application was built — 15 gates, one honest pipeline</h1>
+  <p>ClosCall was built gate by gate: each stage had hard exit criteria, produced checkable
+     evidence, and could not be self-waived. This page is the whole machine and the whole journey —
+     from an empty repo to the browser you are using right now.</p>
+</div>
+
+<h2 style="font-size:15px; margin-top:24px;">The pipeline</h2>
+<div class="pipe">
+  <div class="stage"><div class="t">Fabric</div><div class="s">2-spine / 4-leaf SR Linux, BGP + ECMP</div><div class="g">GATES 2–3</div></div>
+  <div class="stage"><div class="t">Telemetry</div><div class="s">gNMI streams, staleness-guarded</div><div class="g">GATE 4</div></div>
+  <div class="stage"><div class="t">Fault injection</div><div class="s">5 classes + controls, ledgered</div><div class="g">GATE 5</div></div>
+  <div class="stage"><div class="t">Corpus</div><div class="s">312 incidents under load, hashed</div><div class="g">GATE 8</div></div>
+  <div class="stage"><div class="t">Detect + localize</div><div class="s">classical vs learned (the finding)</div><div class="g">GATES 9, 12.5</div></div>
+  <div class="stage"><div class="t">Diagnose</div><div class="s">typed claims, verifier-gated LLM</div><div class="g">GATE 10</div></div>
+  <div class="stage human"><div class="t">Approve</div><div class="s">digest-bound human sign-off — this UI</div><div class="g">GATES 11, 14</div></div>
+  <div class="stage"><div class="t">Execute</div><div class="s">guarded mutation, audit-first, rollback</div><div class="g">GATE 11</div></div>
+</div>
+<p class="muted" style="font-size:12px;">The loop closes: execution is read back from the fabric,
+   recovery is checked against service predicates, and every step lands in the append-only audit
+   trail.</p>
+
+<div class="legendp">
+  {% for key, (label, color) in phases.items() %}
+  <span class="key"><span class="sw" style="background:{{ color }}"></span>{{ label }}</span>
+  {% endfor %}
+</div>
+
+<div class="tl">
+  {% for g in gates %}
+  <div class="gate" style="--pc: {{ phases[g.phase][1] }};">
+    <div class="node">{{ g.num }}</div>
+    <div class="card">
+      <h3>Gate {{ g.num }} — {{ g.title }} <span class="ph">{{ phases[g.phase][0] }}</span></h3>
+      <p>{{ g.built }}</p>
+      <div class="ev">{% for e in g.evidence %}<code>{{ e }}</code>{% endfor %}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="margin-top:18px; border-left:3px solid var(--warning);">
+  <h3 style="font-size:14.5px;">…and what is <em>not</em> claimed</h3>
+  <p style="font-size:13px; color:var(--ink-secondary); margin:6px 0 0;">
+    Deferred with ADRs, never silently: full precheck-suite live wiring (H07, ADR-004), approval
+    expiry/revocation, executor leasing, token rotation, audit hash-chain, backup/restore. The full
+    ledger is <code>docs/LIMITATIONS.md</code> — the honesty is the feature.</p>
+</div>
+
+{% endblock %}

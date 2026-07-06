@@ -199,6 +199,15 @@ def test_dashboard_requires_auth() -> None:
     assert _client(FakeUIRepo()).get("/ui/").status_code == 401
 
 
+def test_journey_page_renders_all_gates() -> None:
+    c = _client(FakeUIRepo())
+    _login(c, "viewer1")
+    body = c.get("/ui/journey").text
+    assert "Gate 0" in body and "Gate 12.5" in body and "Gate 14" in body
+    assert "The pipeline" in body and "docs/LIMITATIONS.md" in body  # honesty card present
+    assert _client(FakeUIRepo()).get("/ui/journey").status_code == 401  # auth required
+
+
 def test_browser_navigation_unauthed_redirects_to_login() -> None:
     """A browser (Accept: text/html) with no/expired session is sent to the login page, not JSON."""
     c = _client(FakeUIRepo())

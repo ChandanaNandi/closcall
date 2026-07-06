@@ -21,6 +21,7 @@ from closcall.api.approval import SideDoorRejected
 from closcall.api.auth import Principal
 from closcall.api.charts import gray_recovery_svg, grouped_auroc_svg
 from closcall.api.dashboard import DISPLAY, load_dashboard
+from closcall.api.gates import GATES, PHASES
 from closcall.api.ui_repo import CaseFile, UIRepo
 
 _HERE = Path(__file__).resolve().parent
@@ -82,6 +83,13 @@ def mount_ui(app: FastAPI, *, ui_repo: UIRepo, principal_dep, require, csrf) -> 
                 "auroc_svg": grouped_auroc_svg(d.rule, d.mlp, d.gnn),
                 "recovery_svg": gray_recovery_svg(d.rule, d.mlp_v1_gray, d.mlp),
             },
+        )
+
+    @app.get("/ui/journey", response_class=HTMLResponse)
+    async def ui_journey(request: Request, p: Principal = Depends(require_reader)) -> HTMLResponse:
+        """The build journey: the pipeline + every gate with its evidence pointers."""
+        return TEMPLATES.TemplateResponse(
+            request, "gates.html", {"gates": GATES, "phases": PHASES, "me": p}
         )
 
     @app.get("/ui/incidents", response_class=HTMLResponse)
