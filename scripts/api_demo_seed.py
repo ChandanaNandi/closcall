@@ -1,8 +1,8 @@
 """Seed a fresh, un-approved demo incident for `make demo-ui` (idempotent).
 
 Creates one open incident with a signal and a drafted (not yet approved) remediation plan, so the UI
-shows a real case file with an actionable Approve button + the H07 banner. Stable keys, so re-runs do
-not duplicate. Also seeds the login users. Run via `make demo-ui`.
+shows a real case file with an actionable Approve button + the H07 banner. Stable keys, so re-runs
+do not duplicate. Also seeds the login users. Run via `make demo-ui`.
 """
 
 from __future__ import annotations
