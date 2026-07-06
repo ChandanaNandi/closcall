@@ -11,9 +11,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from closcall.api.approval import SideDoorRejected
 from closcall.api.auth import Principal
@@ -35,6 +37,19 @@ H07_NOTICE = (
 def mount_ui(app: FastAPI, *, ui_repo: UIRepo, principal_dep, require, csrf) -> None:  # type: ignore[no-untyped-def]
     """Attach the UI routes + static assets to an app built by create_app, reusing its auth deps."""
     app.mount("/ui/static", StaticFiles(directory=str(_HERE / "static")), name="ui-static")
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _ui_auth_redirect(request: Request, exc: StarletteHTTPException) -> Response:
+        """A browser navigating a /ui page with no/expired session gets the login page, not raw
+        JSON. API clients (and non-HTML requests) keep the 401 JSON contract unchanged."""
+        if (
+            exc.status_code == status.HTTP_401_UNAUTHORIZED
+            and request.url.path.startswith("/ui")
+            and "text/html" in request.headers.get("accept", "")
+        ):
+            return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
+        return await http_exception_handler(request, exc)
+
     require_reader = require("viewer", "operator", "approver")
     require_approver = require("approver")
 

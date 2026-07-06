@@ -199,6 +199,15 @@ def test_dashboard_requires_auth() -> None:
     assert _client(FakeUIRepo()).get("/ui/").status_code == 401
 
 
+def test_browser_navigation_unauthed_redirects_to_login() -> None:
+    """A browser (Accept: text/html) with no/expired session is sent to the login page, not JSON."""
+    c = _client(FakeUIRepo())
+    r = c.get("/ui/", headers={"Accept": "text/html"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/ui/login"
+    # non-HTML clients keep the 401 JSON contract
+    assert c.get("/ui/", headers={"Accept": "application/json"}).status_code == 401
+
+
 # ---------------------------------------------------------------- happy path drives the executor
 def test_approve_drives_executor() -> None:
     repo = FakeUIRepo()
