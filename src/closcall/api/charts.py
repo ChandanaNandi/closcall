@@ -88,8 +88,12 @@ def grouped_auroc_svg(
                     f'<line x1="{cx - 3:.1f}" y1="{yhi:.1f}" x2="{cx + 3:.1f}" y2="{yhi:.1f}"/>'
                     f'<line x1="{cx - 3:.1f}" y1="{ylo:.1f}" x2="{cx + 3:.1f}" y2="{ylo:.1f}"/></g>'
                 )
-            # sparse direct labels: the gray classes are the story
-            if cls in GRAY:
+            # sparse direct labels: the gray classes are the story. Skip the GNN label when it
+            # sits within 0.05 of the MLP — adjacent near-equal labels collide and read as noise
+            # (the tooltip still carries the exact value).
+            mlp_r = mlp.get(cls)
+            crowded = sname == "GNN" and mlp_r is not None and abs(r.auroc - mlp_r.auroc) < 0.05
+            if cls in GRAY and not crowded:
                 parts.append(
                     f'<text x="{cx:.1f}" y="{min(y, yhi) - 5:.1f}" text-anchor="middle" '
                     f'fill="var(--ink-secondary)">{r.auroc:.2f}</text>'
