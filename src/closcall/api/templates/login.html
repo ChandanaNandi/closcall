@@ -1,19 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Sign in — ClosCall{% endblock %}
 {% block body %}
-<div class="card" style="max-width:380px;margin:40px auto;">
-  <h2 style="margin-top:0;">Sign in</h2>
+<div class="card" style="max-width:380px; margin:9vh auto 0; padding:28px;">
+  <h2 style="font-size:19px;">Sign in</h2>
+  <p class="muted" style="font-size:12.5px; margin:2px 0 18px;">Evidence-grounded incident command
+     for AI datacenter fabrics.</p>
   <form id="login" onsubmit="return doLogin(event)">
-    <p><input id="u" name="username" placeholder="username" autocomplete="username"
-              style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:#0b0d11;color:var(--fg);" /></p>
-    <p><input id="p" name="password" type="password" placeholder="password" autocomplete="current-password"
-              style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:#0b0d11;color:var(--fg);" /></p>
-    <button class="approve" type="submit">Sign in</button>
-    <span id="err" style="color:var(--danger);margin-left:10px;"></span>
+    <p><input id="u" class="field" name="username" placeholder="username" autocomplete="username" /></p>
+    <p><input id="p" class="field" name="password" type="password" placeholder="password"
+              autocomplete="current-password" /></p>
+    <button class="approve" type="submit" style="width:100%;">Sign in</button>
+    <p id="err" style="color:var(--critical); min-height:18px; margin:10px 0 0; font-size:13px;"></p>
   </form>
-  <p class="muted" style="font-size:12px;margin-top:14px;">
-    Session uses an httpOnly + Secure + SameSite=Strict cookie (ADR-005); CSRF double-submit protects
-    state changes. Bearer token path unchanged for API clients.
+  <p class="muted" style="font-size:11.5px; margin-top:10px;">
+    Session: httpOnly + Secure + SameSite=Strict cookie (ADR-005); CSRF double-submit on every state
+    change. Bearer path unchanged for API clients.
   </p>
 </div>
 <script>
@@ -21,7 +22,7 @@ async function doLogin(e){
   e.preventDefault();
   const r = await fetch('/login', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username: u.value, password: p.value})});
-  if (r.ok) { window.location = '/ui/incidents'; }
+  if (r.ok) { window.location = '/ui/'; }
   else { document.getElementById('err').textContent = 'invalid credentials'; }
   return false;
 }

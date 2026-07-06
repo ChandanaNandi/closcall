@@ -17,6 +17,8 @@ from fastapi.templating import Jinja2Templates
 
 from closcall.api.approval import SideDoorRejected
 from closcall.api.auth import Principal
+from closcall.api.charts import gray_recovery_svg, grouped_auroc_svg
+from closcall.api.dashboard import DISPLAY, load_dashboard
 from closcall.api.ui_repo import CaseFile, UIRepo
 
 _HERE = Path(__file__).resolve().parent
@@ -47,7 +49,25 @@ def mount_ui(app: FastAPI, *, ui_repo: UIRepo, principal_dep, require, csrf) -> 
 
     @app.get("/ui", include_in_schema=False)
     def ui_root() -> RedirectResponse:
-        return RedirectResponse(url="/ui/incidents", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/ui/", status_code=status.HTTP_302_FOUND)
+
+    @app.get("/ui/", response_class=HTMLResponse)
+    async def ui_dashboard(
+        request: Request, p: Principal = Depends(require_reader)
+    ) -> HTMLResponse:
+        """Front door: the study's results, parsed live from the immutable artifacts (J07)."""
+        d = load_dashboard()
+        return TEMPLATES.TemplateResponse(
+            request,
+            "dashboard.html",
+            {
+                "d": d,
+                "me": p,
+                "display": DISPLAY,
+                "auroc_svg": grouped_auroc_svg(d.rule, d.mlp, d.gnn),
+                "recovery_svg": gray_recovery_svg(d.rule, d.mlp_v1_gray, d.mlp),
+            },
+        )
 
     @app.get("/ui/incidents", response_class=HTMLResponse)
     async def ui_incidents(
@@ -75,9 +95,11 @@ def mount_ui(app: FastAPI, *, ui_repo: UIRepo, principal_dep, require, csrf) -> 
     def _panel(
         request: Request, case: CaseFile | None, p: Principal, msg: str = ""
     ) -> HTMLResponse:
+        # Full case-file partial: approve/edit/reject swap EVERYTHING dynamic (plan JSON, audit
+        # trail included), so no section goes stale after an action.
         return TEMPLATES.TemplateResponse(
             request,
-            "_panel.html",
+            "_casefile.html",
             {"case": case, "me": p, "h07_notice": H07_NOTICE, "flash": msg},
         )
 

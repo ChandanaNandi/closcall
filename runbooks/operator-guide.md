@@ -374,6 +374,10 @@ that stands up the live API + executor against a real device today (see §4/§5 
 - `make api-up` seeds login users and serves the HITL UI on **loopback HTTPS** (lab PKI) at
   `https://127.0.0.1:8443/ui/login`. Users: `viewer1` / `operator1` / `approver1`, password
   `CLOSCALL_SEED_PASSWORD` (default `closcall-demo`). Accept the self-signed lab cert.
+- The front door (`/ui/`) is a **results dashboard**: the study's headline (detection blind to gray
+  faults; learned localization recovers them), corpus scale, the per-class AUROC chart with CIs, and
+  the safety architecture — every number parsed live from the content-hashed artifacts the v3
+  manifest binds (J07; never hand-typed).
 - Flow: incident list → case file (evidence, localized link, drafted plan + digest) → **Approve /
   Edit / Reject** (approver role only). Approve drives the SAME `execute_job` as the vertical slice.
 - **Honest labels shown in the UI itself:** a sticky banner directly above the approve button states

@@ -174,6 +174,31 @@ def test_h07_banner_persists_in_approve_fragment() -> None:
     assert frag.status_code == 200 and H07_NOTICE[:60] in frag.text
 
 
+def test_approve_fragment_refreshes_whole_casefile() -> None:
+    """The action swap must include the plan JSON and the audit section — no stale siblings."""
+    c = _client(FakeUIRepo())
+    csrf = _login(c, "approver1")
+    frag = c.post(f"/ui/incidents/{INC}/approve", headers={"X-CSRF-Token": csrf})
+    assert 'id="casefile"' in frag.text  # full partial, not just the decision panel
+    assert "Drafted plan" in frag.text and "Audit trail" in frag.text
+
+
+# ---------------------------------------------------------------- dashboard (front door)
+def test_dashboard_renders_numbers_from_immutable_artifacts() -> None:
+    """/ui/ parses the committed study artifacts — spot-check known frozen values render."""
+    c = _client(FakeUIRepo())
+    _login(c, "viewer1")  # reader role suffices
+    body = c.get("/ui/").text
+    assert "chance" in body and "Localizing the faulted link" in body
+    assert "0.91" in body  # gray-fault MLP AUROC (temporal features), from the frozen table
+    assert "312" in body  # corpus incidents, parsed from the ablation artifact
+    assert "dd8def51" in body  # immutable run id prefix from the manifest
+
+
+def test_dashboard_requires_auth() -> None:
+    assert _client(FakeUIRepo()).get("/ui/").status_code == 401
+
+
 # ---------------------------------------------------------------- happy path drives the executor
 def test_approve_drives_executor() -> None:
     repo = FakeUIRepo()

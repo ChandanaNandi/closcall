@@ -1,22 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Incidents — ClosCall{% endblock %}
+{% block nav_inc %}active{% endblock %}
 {% block who %}{{ me.user_id }} · {{ me.role }}{% endblock %}
 {% block body %}
-<h2>Open incidents</h2>
+<div style="display:flex; align-items:baseline; justify-content:space-between; gap:14px; margin:6px 0 16px;">
+  <h2 style="font-size:20px;">Incidents</h2>
+  <span class="muted" style="font-size:12.5px;">{{ incidents|length }} open · click one to open its case file</span>
+</div>
 {% if not incidents %}
-  <div class="card muted">No incidents. Run the vertical slice / demo to open one.</div>
+  <div class="card muted">No incidents. Run <code>make demo-ui</code> (or the vertical slice) to open one.</div>
 {% else %}
-<div class="card" style="padding:0;">
+<div class="card" style="padding:4px 14px;">
 <table>
   <thead><tr><th>Incident</th><th>Severity</th><th>Status</th><th>Localized link</th><th>Opened</th></tr></thead>
   <tbody>
   {% for i in incidents %}
     <tr>
       <td><a href="/ui/incidents/{{ i.id }}">{{ i.incident_key }}</a></td>
-      <td><span class="pill">{{ i.severity }}</span></td>
+      <td><span class="pill">
+        <span class="dot" style="background:var(--{{ 'critical' if i.severity in ('high','critical') else 'warning' }})"></span>
+        {{ i.severity }}</span></td>
       <td>{{ i.status }}</td>
       <td>{% if i.localized_link %}<code>{{ i.localized_link }}</code>{% else %}<span class="muted">—</span>{% endif %}</td>
-      <td class="muted">{{ i.opened_at[:19] }}</td>
+      <td class="muted num">{{ i.opened_at[:19].replace('T',' ') }}</td>
     </tr>
   {% endfor %}
   </tbody>

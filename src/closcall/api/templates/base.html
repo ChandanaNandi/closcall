@@ -7,44 +7,121 @@
   <script src="/ui/static/htmx.min.js"></script>
   <script src="/ui/static/csrf.js" defer></script>
   <style>
-    :root { --bg:#0f1115; --card:#171a21; --line:#2a2f3a; --fg:#e6e9ef; --muted:#9aa4b2;
-            --accent:#4f8cff; --danger:#e5484d; --warn-bg:#3a2a12; --warn-line:#e0a800; --ok:#2ecc71; }
-    * { box-sizing: border-box; }
-    body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-           background:var(--bg); color:var(--fg); }
-    header { padding:12px 20px; border-bottom:1px solid var(--line); display:flex;
-             justify-content:space-between; align-items:center; }
-    header .brand { font-weight:700; letter-spacing:.3px; }
-    main { max-width:960px; margin:0 auto; padding:20px; }
+    /* Design tokens — dataviz reference palette, dark mode (validated: see charts.py) */
+    :root {
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220;
+      --ink-primary:#ffffff; --ink-secondary:#c3c2b7; --ink-muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --s-rule:#898781; --s-mlp:#3987e5; --s-mlp-lt:#6da7ec; --s-gnn:#199e70;
+      --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+      --accent:#3987e5;
+    }
+    * { box-sizing:border-box; }
+    html { -webkit-text-size-adjust:100%; }
+    body { margin:0; background:var(--page); color:var(--ink-secondary);
+           font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    h1,h2,h3 { color:var(--ink-primary); margin:0 0 6px; font-weight:650; letter-spacing:-0.01em; }
     a { color:var(--accent); text-decoration:none; }
-    table { width:100%; border-collapse:collapse; }
-    th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); }
-    th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px;
-            margin-bottom:16px; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px;
-            border:1px solid var(--line); color:var(--muted); }
-    pre { background:#0b0d11; border:1px solid var(--line); border-radius:8px; padding:12px;
-          overflow:auto; font-size:12px; }
-    button { font:inherit; padding:9px 16px; border-radius:8px; border:1px solid var(--line);
-             background:#20242e; color:var(--fg); cursor:pointer; }
-    button.approve { background:var(--accent); border-color:var(--accent); color:#04122e; font-weight:700; }
-    button.reject { border-color:var(--danger); color:#ffbfc1; }
-    .muted { color:var(--muted); }
-    .flash { color:var(--ok); font-weight:600; }
-    /* H07 safety banner: loud, sticky, sits directly above the approve controls. */
-    .h07 { position:sticky; top:0; z-index:5; background:var(--warn-bg);
-           border:2px solid var(--warn-line); border-radius:8px; padding:12px 14px; margin-bottom:12px;
-           color:#ffe9a8; font-weight:600; display:flex; gap:10px; align-items:flex-start; }
-    .h07 .icon { font-size:18px; line-height:1; }
-    .actions { display:flex; gap:10px; margin-top:6px; }
+    a:hover { text-decoration:underline; }
+    code { font:12px ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--ink-secondary);
+           background:var(--surface-2); padding:1px 5px; border-radius:5px; }
+
+    header.site { position:sticky; top:0; z-index:20; background:rgba(13,13,13,0.88);
+      backdrop-filter:blur(8px); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:26px; padding:12px 28px; }
+    header.site .brand { color:var(--ink-primary); font-weight:750; letter-spacing:0.2px; }
+    header.site .brand span { color:var(--accent); }
+    header.site nav { display:flex; gap:18px; font-size:13px; }
+    header.site nav a { color:var(--ink-secondary); }
+    header.site nav a.active { color:var(--ink-primary); font-weight:600; }
+    header.site .who { margin-left:auto; font-size:12px; color:var(--ink-muted); }
+
+    main { max-width:1080px; margin:0 auto; padding:28px 28px 64px; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+            padding:20px; }
+    .row { display:grid; gap:14px; }
+    .muted { color:var(--ink-muted); }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 9px; border-radius:999px;
+            font-size:12px; border:1px solid var(--border); color:var(--ink-secondary); }
+    .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+    table { width:100%; border-collapse:collapse; font-size:13.5px; }
+    th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--grid); }
+    th { color:var(--ink-muted); font-weight:600; font-size:11px; text-transform:uppercase;
+         letter-spacing:0.06em; }
+    tr:last-child td { border-bottom:none; }
+    td.num { font-variant-numeric:tabular-nums; }
+    tbody tr:hover { background:var(--surface-2); }
+
+    button { font:inherit; padding:9px 16px; border-radius:9px; border:1px solid var(--border);
+             background:var(--surface-2); color:var(--ink-primary); cursor:pointer; }
+    button:hover { border-color:var(--ink-muted); }
+    button.approve { background:var(--accent); border-color:var(--accent); color:#06172e;
+                     font-weight:700; }
+    button.approve:hover { filter:brightness(1.1); }
+    button.reject { border-color:var(--critical); color:#f1a3a3; background:transparent; }
+    input.field { width:100%; padding:10px 12px; border-radius:9px; border:1px solid var(--border);
+                  background:var(--page); color:var(--ink-primary); font:inherit; }
+    input.field:focus { outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent; }
+
+    pre { background:var(--page); border:1px solid var(--grid); border-radius:9px; padding:14px;
+          overflow:auto; font-size:12px; line-height:1.5; }
+    .flash { color:var(--good); font-weight:600; }
+
+    /* H07 safety banner: loud, sticky under the header, at the decision point. */
+    .h07 { position:sticky; top:52px; z-index:10; display:flex; gap:12px; align-items:flex-start;
+           background:rgba(250,178,25,0.10); border:1.5px solid var(--warning);
+           border-radius:10px; padding:12px 14px; margin-bottom:14px;
+           color:#ffdf9e; font-weight:600; font-size:13px; line-height:1.5; }
+    .h07 .icon { font-size:17px; line-height:1.2; }
+    .actions { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+
+    /* chart chrome */
+    .hit { cursor:default; }
+    #viz-tip { position:fixed; z-index:50; pointer-events:none; display:none; max-width:320px;
+      background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+      padding:7px 10px; font-size:12px; color:var(--ink-primary);
+      box-shadow:0 6px 24px rgba(0,0,0,0.5); }
+    .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--ink-secondary);
+              margin:2px 0 10px; }
+    .legend .key { display:inline-flex; align-items:center; gap:7px; }
+    .legend .sw { width:10px; height:10px; border-radius:3px; display:inline-block; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">ClosCall — HITL</div>
-    <div class="muted">{% block who %}{% endblock %}</div>
+  <header class="site">
+    <div class="brand">Clos<span>Call</span></div>
+    <nav>
+      <a href="/ui/" class="{% block nav_dash %}{% endblock %}">Dashboard</a>
+      <a href="/ui/incidents" class="{% block nav_inc %}{% endblock %}">Incidents</a>
+    </nav>
+    <div class="who">{% block who %}{% endblock %}</div>
   </header>
   <main>{% block body %}{% endblock %}</main>
+  <div id="viz-tip"></div>
+  <script>
+    // hover tooltip for chart marks (.hit elements carry data-tip)
+    (function () {
+      const tip = document.getElementById("viz-tip");
+      document.addEventListener("mouseover", (e) => {
+        const t = e.target.closest?.(".hit");
+        if (!t) { tip.style.display = "none"; return; }
+        tip.textContent = t.dataset.tip || "";
+        tip.style.display = "block";
+      });
+      document.addEventListener("mousemove", (e) => {
+        if (tip.style.display !== "block") return;
+        const pad = 14;
+        let x = e.clientX + pad, y = e.clientY + pad;
+        const r = tip.getBoundingClientRect();
+        if (x + r.width > innerWidth - 8) x = e.clientX - r.width - pad;
+        if (y + r.height > innerHeight - 8) y = e.clientY - r.height - pad;
+        tip.style.left = x + "px"; tip.style.top = y + "px";
+      });
+      document.addEventListener("mouseout", (e) => {
+        if (e.target.closest?.(".hit")) tip.style.display = "none";
+      });
+    })();
+  </script>
 </body>
 </html>

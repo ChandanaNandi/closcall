@@ -1,0 +1,70 @@
+<div id="casefile">
+  <div class="card" style="margin-bottom:14px;">
+    <!-- H07 safety-scope banner: sticky, loud, directly above the approve controls (ADR-004). -->
+    <div class="h07">
+      <span class="icon">⚠</span>
+      <span>{{ h07_notice }}</span>
+    </div>
+
+    {% if flash %}<p class="flash" style="margin:4px 0 10px;">{{ flash }}</p>{% endif %}
+
+    {% if case.plan %}
+    <p style="margin:4px 0 0; display:flex; gap:8px; flex-wrap:wrap;">
+      <span class="pill">plan v{{ case.plan.plan_version }}</span>
+      <span class="pill">risk: {{ case.plan.risk_class }}</span>
+      <span class="pill">target: <code style="background:none;padding:0;">{{ case.plan.localized_link }}</code></span>
+      <span class="pill">digest: {{ case.plan.plan_digest[:12] }}…</span>
+      {% if case.plan.approved %}<span class="pill" style="border-color:var(--good);color:var(--good);">✓ approved</span>{% endif %}
+      {% if case.plan.executed_status %}<span class="pill" style="border-color:var(--accent);color:var(--accent);">exec: {{ case.plan.executed_status }}</span>{% endif %}
+    </p>
+
+    {% if me.role == 'approver' %}
+      <div class="actions">
+        <button class="approve"
+                hx-post="/ui/incidents/{{ case.incident.id }}/approve"
+                hx-target="#casefile" hx-swap="outerHTML">Approve &amp; execute</button>
+        <button hx-post="/ui/incidents/{{ case.incident.id }}/edit"
+                hx-target="#casefile" hx-swap="outerHTML">Edit (new plan version)</button>
+        <button class="reject"
+                hx-post="/ui/incidents/{{ case.incident.id }}/reject"
+                hx-target="#casefile" hx-swap="outerHTML">Reject</button>
+      </div>
+    {% else %}
+      <p class="muted" style="margin:10px 0 0;">Read-only — role <code>{{ me.role }}</code> cannot
+        approve. An approver signs off here.</p>
+    {% endif %}
+    {% else %}
+      <p class="muted">No drafted remediation plan for this incident yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3 style="font-size:15px;">Diagnosis</h3>
+    <p>Localized link:
+      {% if case.incident.localized_link %}<code>{{ case.incident.localized_link }}</code>{% else %}<span class="muted">—</span>{% endif %}
+      · typed claim (deterministic, no LLM): <strong style="color:var(--ink-primary);">{{ case.claim }}</strong>
+    </p>
+    <p class="muted" style="font-size:12.5px;">Evidence: {{ case.evidence }}</p>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3 style="font-size:15px;">Drafted plan</h3>
+    {% if case.plan %}<pre>{{ case.plan.plan_json | tojson(indent=2) }}</pre>
+    <p class="muted" style="font-size:12px;">digest {{ case.plan.plan_digest }}</p>
+    {% else %}<p class="muted">none</p>{% endif %}
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3 style="font-size:15px;">Signals</h3>
+    {% if case.signals %}<ul style="margin:6px 0 0; padding-left:20px;">
+      {% for s in case.signals %}<li>{{ s.source }} @ {{ s.observed_at }}</li>{% endfor %}</ul>
+    {% else %}<p class="muted">none</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:15px;">Audit trail <span class="muted" style="font-size:11px;font-weight:400;">(read-only, append-only)</span></h3>
+    {% if case.audit %}<table><thead><tr><th>Actor</th><th>Action</th><th>Entity</th><th>Detail</th></tr></thead>
+    <tbody>{% for a in case.audit %}<tr><td>{{ a.actor_type }}</td><td><code>{{ a.action }}</code></td><td>{{ a.entity_type }}</td><td class="muted" style="font-size:12px;">{{ a.summary }}</td></tr>{% endfor %}</tbody></table>
+    {% else %}<p class="muted">no audit records yet</p>{% endif %}
+  </div>
+</div>
